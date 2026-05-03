@@ -161,31 +161,65 @@ router.post("/rsvp", async (req, res) => {
       return res.status(409).json({ ok: false, error: "duplicate_phone", guest: existing[0] });
     }
 
-    const companionsStr = companions && Array.isArray(companions) ? JSON.stringify(companions) : null;
+    const primaryId = String(id);
+    const guestLang = lang === "ar" ? "ar" : "en";
 
     await db.insert(guestsTable).values({
-      id: String(id),
+      id: primaryId,
+      primaryGuestId: null,
       firstName: String(firstName),
       familyName: String(familyName),
       countryCode: String(countryCode || ""),
       mobile: String(mobile || ""),
       fullPhone: String(fullPhone),
       group: String(group || ""),
-      lang: lang === "ar" ? "ar" : "en",
-      companions: companionsStr,
+      lang: guestLang,
+      companions: null,
     });
 
     // Build & cache the personalized invitation image with QR overlay
     const composed = await buildPersonalizedInvitation({
-      id: String(id),
+      id: primaryId,
       firstName: String(firstName),
       familyName: String(familyName),
-      lang: lang === "ar" ? "ar" : "en",
+      lang: guestLang,
     });
-    const outPath = path.join(QR_DIR, `${id}.jpg`);
-    await fs.writeFile(outPath, composed);
+    await fs.writeFile(path.join(QR_DIR, `${primaryId}.jpg`), composed);
 
-    return res.json({ ok: true, id: String(id) });
+    // Insert each companion as their own guest row linked to the primary guest
+    if (companions && Array.isArray(companions)) {
+      for (const c of companions as any[]) {
+        if (!c.id) continue;
+        const cPhone = c.phone ? String(c.phone).replace(/\D/g, "") : "";
+        const cCountryCode = c.countryCode ? String(c.countryCode) : String(countryCode || "");
+        const cFullPhone = cPhone ? `${cCountryCode}${cPhone}` : `companion-${c.id}`;
+        try {
+          await db.insert(guestsTable).values({
+            id: String(c.id),
+            primaryGuestId: primaryId,
+            firstName: String(c.firstName || ""),
+            familyName: String(c.familyName || ""),
+            countryCode: cCountryCode,
+            mobile: cPhone,
+            fullPhone: cFullPhone,
+            group: String(group || ""),
+            lang: guestLang,
+            companions: null,
+          });
+          const cComposed = await buildPersonalizedInvitation({
+            id: String(c.id),
+            firstName: String(c.firstName || ""),
+            familyName: String(c.familyName || ""),
+            lang: guestLang,
+          });
+          await fs.writeFile(path.join(QR_DIR, `${c.id}.jpg`), cComposed);
+        } catch (compErr: any) {
+          logger.warn({ compErr, companionId: c.id }, "Failed to insert companion — skipping");
+        }
+      }
+    }
+
+    return res.json({ ok: true, id: primaryId });
   } catch (err: any) {
     logger.error({ err }, "RSVP route error");
     return res.status(500).json({ ok: false, error: err?.message || "server_error" });

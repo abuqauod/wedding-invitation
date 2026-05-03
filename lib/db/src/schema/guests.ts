@@ -4,6 +4,7 @@ import { z } from "zod/v4";
 
 export const guestsTable = pgTable("guests", {
   id: text("id").primaryKey(),
+  primaryGuestId: text("primary_guest_id"),
   firstName: text("first_name").notNull(),
   familyName: text("family_name").notNull(),
   countryCode: text("country_code").notNull(),

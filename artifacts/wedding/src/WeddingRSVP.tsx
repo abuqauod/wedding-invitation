@@ -329,7 +329,7 @@ const ALLOWED_COUNTRIES = [
   { code: "+48", name: "Poland", flag: "🇵🇱" },
   { code: "+90", name: "Turkey", flag: "🇹🇷" },
   { code: "+30", name: "Greece", flag: "🇬🇷" },
-  { code: "+90", name: "Cyprus", flag: "🇨🇾" },
+  { code: "+357", name: "Cyprus", flag: "🇨🇾" },
   { code: "+98", name: "Iran", flag: "🇮🇷" },
   { code: "+92", name: "Pakistan", flag: "🇵🇰" },
   { code: "+91", name: "India", flag: "🇮🇳" },
@@ -459,6 +459,7 @@ const RealQRCode: React.FC<{ value: string; size?: number }> = ({
 
 type Guest = {
   id: string;
+  primaryGuestId: string | null;
   firstName: string;
   familyName: string;
   countryCode: string;
@@ -491,6 +492,7 @@ export default function WeddingRSVP() {
         setGuests(
           (data.guests as any[]).map((g) => ({
             id: g.id,
+            primaryGuestId: g.primaryGuestId ?? null,
             firstName: g.firstName,
             familyName: g.familyName,
             countryCode: g.countryCode,
@@ -1904,15 +1906,26 @@ function AdminView({ t, lang, guests, guestsLoading, updateGuest, deleteGuest, e
     return <LoginGate t={t} lang={lang} onSuccess={(role: string) => setAuth(role === "admin")} />;
 
   const colKeys = ["name", "fullPhone", "group", "seat", "status", "whatsapp"];
-  const filtered = guests
+
+  const primaryGuests = guests.filter((g: Guest) => !g.primaryGuestId);
+  const getCompanions = (primaryId: string) => guests.filter((g: Guest) => g.primaryGuestId === primaryId);
+
+  const matchesSearch = (g: Guest) =>
+    `${g.firstName} ${g.familyName} ${g.fullPhone}`.toLowerCase().includes(search.toLowerCase());
+
+  const matchesFilter = (g: Guest) => {
+    if (filter === "assigned") return g.tableNumber !== null;
+    if (filter === "unassigned") return g.tableNumber === null;
+    if (filter === "attended") return g.checkedInAt !== null;
+    return true;
+  };
+
+  const filtered = primaryGuests
     .filter((g: Guest) => {
-      const m = `${g.firstName} ${g.familyName} ${g.fullPhone}`
-        .toLowerCase()
-        .includes(search.toLowerCase());
-      if (filter === "assigned") return m && g.tableNumber !== null;
-      if (filter === "unassigned") return m && g.tableNumber === null;
-      if (filter === "attended") return m && g.checkedInAt !== null;
-      return m;
+      const companions = getCompanions(g.id);
+      const selfMatch = matchesSearch(g) && matchesFilter(g);
+      const companionMatch = companions.some((c) => matchesSearch(c) && matchesFilter(c));
+      return selfMatch || companionMatch;
     })
     .sort((a: Guest, b: Guest) => {
       let av: any, bv: any;
@@ -1946,7 +1959,7 @@ function AdminView({ t, lang, guests, guestsLoading, updateGuest, deleteGuest, e
     total: guests.length,
     assigned: guests.filter((g: Guest) => g.tableNumber !== null).length,
     attended: guests.filter((g: Guest) => g.checkedInAt !== null).length,
-    unassigned: guests.filter((g: Guest) => g.tableNumber === null).length,
+    unassigned: guests.filter((g: Guest) => g.tableNumber === null && !g.primaryGuestId).length,
   };
   const assignSeat = async (id: string, tn: number, sn: number) => {
     setSeatSaving(true);
@@ -2195,168 +2208,85 @@ function AdminView({ t, lang, guests, guestsLoading, updateGuest, deleteGuest, e
               </tr>
             </thead>
             <tbody>
-              {filtered.map((g: Guest) => (
-                <tr key={g.id} style={{ borderBottom: `1px solid #eee8d8` }}>
-                  <td style={{ padding: "16px 14px" }}>
-                    <div
-                      className="serif"
-                      style={{ fontSize: 20, color: C.dark }}
-                    >
-                      {g.firstName} {g.familyName}
-                    </div>
-                  </td>
-                  <td style={{ padding: "16px 14px" }} dir="ltr">
-                    <div
-                      style={{
-                        fontSize: 14,
-                        color: C.muted,
-                        fontFamily: "monospace",
-                      }}
-                    >
-                      {g.fullPhone}
-                    </div>
-                  </td>
-                  <td style={{ padding: "16px 14px" }}>
-                    <div
-                      style={{
-                        fontSize: 14,
-                        color: C.muted,
-                        fontFamily: "Cormorant Garamond,serif",
-                        fontStyle: "italic",
-                      }}
-                    >
-                      {g.group}
-                    </div>
-                  </td>
-                  <td style={{ padding: "16px 14px" }}>
-                    {g.tableNumber ? (
-                      <div
-                        className="cinzel"
-                        style={{ fontSize: 12, color: C.dark }}
-                      >
-                        T{String(g.tableNumber).padStart(2, "0")} · S
-                        {String(g.seatNumber).padStart(2, "0")}
-                      </div>
-                    ) : (
-                      <div
-                        style={{
-                          fontSize: 14,
-                          color: "#bbb",
-                          fontFamily: "Cormorant Garamond,serif",
-                          fontStyle: "italic",
-                        }}
-                      >
-                        {t.admin.notAssigned}
-                      </div>
-                    )}
-                  </td>
-                  <td style={{ padding: "16px 14px" }}>
-                    {g.checkedInAt ? (
-                      <span
-                        style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: 6,
-                          background: "#f0f7ec",
-                          padding: "4px 10px",
-                          borderRadius: 12,
-                          fontSize: 12,
-                          color: C.light,
-                          fontFamily: "Cinzel,serif",
-                          letterSpacing: ".1em",
-                        }}
-                      >
-                        <CheckCircle2 size={12} />
-                        {t.admin.attendedLabel}
-                      </span>
-                    ) : (
-                      <span
-                        style={{
-                          fontSize: 14,
-                          color: C.muted,
-                          fontFamily: "Cormorant Garamond,serif",
-                          fontStyle: "italic",
-                        }}
-                      >
-                        {t.admin.registeredLabel}
-                      </span>
-                    )}
-                  </td>
-                  <td style={{ padding: "16px 14px" }}>
-                    {g.whatsappSent ? (
-                      <span
-                        style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: 5,
-                          background: "#eaf5e9",
-                          padding: "4px 10px",
-                          borderRadius: 12,
-                          fontSize: 11,
-                          color: "#2d6a2d",
-                          fontFamily: "Cinzel,serif",
-                          letterSpacing: ".08em",
-                        }}
-                      >
-                        <CheckCircle2 size={11} />
-                        {isAr ? "أُرسل" : "Sent"}
-                      </span>
-                    ) : (
-                      <span
-                        style={{
-                          display: "inline-flex",
-                          alignItems: "center",
-                          gap: 5,
-                          background: "#fff3f3",
-                          padding: "4px 10px",
-                          borderRadius: 12,
-                          fontSize: 11,
-                          color: "#b04040",
-                          fontFamily: "Cinzel,serif",
-                          letterSpacing: ".08em",
-                        }}
-                      >
-                        <XCircle size={11} />
-                        {isAr ? "لم يُرسل" : "Not Sent"}
-                      </span>
-                    )}
-                  </td>
-                  <td
+              {filtered.flatMap((g: Guest) => {
+                const companions = getCompanions(g.id);
+                const renderRow = (row: Guest, isCompanion: boolean) => (
+                  <tr
+                    key={row.id}
                     style={{
-                      padding: "16px 14px",
-                      textAlign: isAr ? "left" : "right",
+                      borderBottom: `1px solid #eee8d8`,
+                      background: isCompanion ? "#fafaf7" : undefined,
                     }}
                   >
-                    <div style={{ display: "inline-flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
-                      <button onClick={() => setSelGuest(g)} className="act-link">
-                        {t.admin.seat}
-                      </button>
-                      <button onClick={() => setViewQR(g)} className="act-link">
-                        {t.admin.qr}
-                      </button>
-                      <button
-                        onClick={() => resendPass(g)}
-                        className="act-link"
-                        disabled={resendingId === g.id}
-                        style={{ color: C.mid, opacity: resendingId === g.id ? 0.5 : 1 }}
-                      >
-                        {resendingId === g.id ? (isAr ? "…" : "…") : t.admin.resend}
-                      </button>
-                      <button
-                        onClick={() => {
-                          if (window.confirm(isAr ? `حذف ${g.firstName} ${g.familyName}؟` : `Remove ${g.firstName} ${g.familyName}?`)) {
-                            deleteGuest(g.id);
-                          }
-                        }}
-                        className="act-link"
-                        style={{ color: "#b04040" }}
-                      >
-                        {isAr ? "حذف" : "Delete"}
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+                    <td style={{ padding: isCompanion ? "10px 14px 10px 32px" : "16px 14px" }}>
+                      {isCompanion && (
+                        <div style={{ fontSize: 10, color: C.gold, fontFamily: "Cinzel,serif", letterSpacing: ".12em", marginBottom: 3 }}>
+                          {isAr ? `↳ مرافق ${g.firstName} ${g.familyName}` : `↳ with ${g.firstName} ${g.familyName}`}
+                        </div>
+                      )}
+                      <div className="serif" style={{ fontSize: isCompanion ? 17 : 20, color: isCompanion ? C.mid : C.dark }}>
+                        {row.firstName} {row.familyName}
+                      </div>
+                    </td>
+                    <td style={{ padding: isCompanion ? "10px 14px" : "16px 14px" }} dir="ltr">
+                      <div style={{ fontSize: 14, color: C.muted, fontFamily: "monospace" }}>
+                        {row.fullPhone.startsWith("companion-") ? "—" : row.fullPhone}
+                      </div>
+                    </td>
+                    <td style={{ padding: isCompanion ? "10px 14px" : "16px 14px" }}>
+                      <div style={{ fontSize: 14, color: C.muted, fontFamily: "Cormorant Garamond,serif", fontStyle: "italic" }}>
+                        {row.group}
+                      </div>
+                    </td>
+                    <td style={{ padding: isCompanion ? "10px 14px" : "16px 14px" }}>
+                      {row.tableNumber ? (
+                        <div className="cinzel" style={{ fontSize: 12, color: C.dark }}>
+                          T{String(row.tableNumber).padStart(2, "0")} · S{String(row.seatNumber).padStart(2, "0")}
+                        </div>
+                      ) : (
+                        <div style={{ fontSize: 14, color: "#bbb", fontFamily: "Cormorant Garamond,serif", fontStyle: "italic" }}>
+                          {t.admin.notAssigned}
+                        </div>
+                      )}
+                    </td>
+                    <td style={{ padding: isCompanion ? "10px 14px" : "16px 14px" }}>
+                      {row.checkedInAt ? (
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 6, background: "#f0f7ec", padding: "4px 10px", borderRadius: 12, fontSize: 12, color: C.light, fontFamily: "Cinzel,serif", letterSpacing: ".1em" }}>
+                          <CheckCircle2 size={12} />{t.admin.attendedLabel}
+                        </span>
+                      ) : (
+                        <span style={{ fontSize: 14, color: C.muted, fontFamily: "Cormorant Garamond,serif", fontStyle: "italic" }}>
+                          {t.admin.registeredLabel}
+                        </span>
+                      )}
+                    </td>
+                    <td style={{ padding: isCompanion ? "10px 14px" : "16px 14px" }}>
+                      {row.whatsappSent ? (
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "#eaf5e9", padding: "4px 10px", borderRadius: 12, fontSize: 11, color: "#2d6a2d", fontFamily: "Cinzel,serif", letterSpacing: ".08em" }}>
+                          <CheckCircle2 size={11} />{isAr ? "أُرسل" : "Sent"}
+                        </span>
+                      ) : (
+                        <span style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "#fff3f3", padding: "4px 10px", borderRadius: 12, fontSize: 11, color: "#b04040", fontFamily: "Cinzel,serif", letterSpacing: ".08em" }}>
+                          <XCircle size={11} />{isAr ? "لم يُرسل" : "Not Sent"}
+                        </span>
+                      )}
+                    </td>
+                    <td style={{ padding: isCompanion ? "10px 14px" : "16px 14px", textAlign: isAr ? "left" : "right" }}>
+                      <div style={{ display: "inline-flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
+                        <button onClick={() => setSelGuest(row)} className="act-link">{t.admin.seat}</button>
+                        <button onClick={() => setViewQR(row)} className="act-link">{t.admin.qr}</button>
+                        <button onClick={() => resendPass(row)} className="act-link" disabled={resendingId === row.id} style={{ color: C.mid, opacity: resendingId === row.id ? 0.5 : 1 }}>
+                          {resendingId === row.id ? "…" : t.admin.resend}
+                        </button>
+                        <button onClick={() => { if (window.confirm(isAr ? `حذف ${row.firstName} ${row.familyName}؟` : `Remove ${row.firstName} ${row.familyName}?`)) deleteGuest(row.id); }} className="act-link" style={{ color: "#b04040" }}>
+                          {isAr ? "حذف" : "Delete"}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+                return [renderRow(g, false), ...companions.map((c) => renderRow(c, true))];
+              })}
             </tbody>
           </table>
         )}
