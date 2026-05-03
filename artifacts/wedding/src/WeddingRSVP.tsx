@@ -46,7 +46,7 @@ const TRANSLATIONS: any = {
       childrenNotice:
         "Per hotel policy, the presence of children is respectfully declined",
       rsvpTitle: "KINDLY RESPOND",
-      rsvpDeadline: "BY THE SEVENTH OF MAY",
+      rsvpDeadline: "BY THE 1ST OF JULY",
       cta: "Confirm Attendance",
     },
     register: {
@@ -74,9 +74,10 @@ const TRANSLATIONS: any = {
       testNote:
         "Please present this pass at the entrance of The Ritz-Carlton on the evening of the celebration.",
       companions: "Additional Guests",
-      companionsHint: "How many guests are joining you? (0 = just yourself)",
+      companionsHint: "How many guests are joining you? (max 4)",
       companionFirst: "Companion's First Name",
       companionFamily: "Companion's Family Name",
+      companionPhone: "Companion's Phone Number",
       reservedSeats: (n: number) => n === 1 ? "We have reserved a seat in your honor." : `We have reserved ${n} seats in your honour.`,
     },
     login: {
@@ -180,7 +181,7 @@ const TRANSLATIONS: any = {
       city: "عمّان · الأردن",
       childrenNotice: "حسب سياسة الفندق يمنع اصطحاب الأطفال",
       rsvpTitle: "الرجاء تأكيد الحضور",
-      rsvpDeadline: "قبل السابع من أيار",
+      rsvpDeadline: "قبل الأول من تموز",
       cta: "تأكيد الحضور",
     },
     register: {
@@ -208,9 +209,10 @@ const TRANSLATIONS: any = {
       testNote:
         "الرجاء تقديم هذه البطاقة عند مدخل فندق ريتز كارلتون مساء الحفل.",
       companions: "مرافقون",
-      companionsHint: "كم عدد المرافقين لك؟ (0 = بمفردك)",
+      companionsHint: "كم عدد المرافقين لك؟ (بحد أقصى 4)",
       companionFirst: "الاسم الأول للمرافق",
       companionFamily: "اسم العائلة للمرافق",
+      companionPhone: "رقم هاتف المرافق",
       reservedSeats: (n: number) => n === 1 ? "لقد حجزنا لكم مقعداً خُصّص بمحبة." : `لقد حجزنا لكم ${n} مقاعد خُصّصت بمحبة.`,
     },
     login: {
@@ -295,13 +297,68 @@ const ALLOWED_COUNTRIES = [
   { code: "+971", name: "UAE", flag: "🇦🇪" },
   { code: "+965", name: "Kuwait", flag: "🇰🇼" },
   { code: "+974", name: "Qatar", flag: "🇶🇦" },
+  { code: "+973", name: "Bahrain", flag: "🇧🇭" },
+  { code: "+968", name: "Oman", flag: "🇴🇲" },
+  { code: "+967", name: "Yemen", flag: "🇾🇪" },
   { code: "+20", name: "Egypt", flag: "🇪🇬" },
   { code: "+961", name: "Lebanon", flag: "🇱🇧" },
   { code: "+970", name: "Palestine", flag: "🇵🇸" },
-  { code: "+1", name: "USA/Canada", flag: "🇺🇸" },
+  { code: "+963", name: "Syria", flag: "🇸🇾" },
+  { code: "+964", name: "Iraq", flag: "🇮🇶" },
+  { code: "+218", name: "Libya", flag: "🇱🇾" },
+  { code: "+216", name: "Tunisia", flag: "🇹🇳" },
+  { code: "+213", name: "Algeria", flag: "🇩🇿" },
+  { code: "+212", name: "Morocco", flag: "🇲🇦" },
+  { code: "+249", name: "Sudan", flag: "🇸🇩" },
+  { code: "+1", name: "USA / Canada", flag: "🇺🇸" },
+  { code: "+44", name: "UK", flag: "🇬🇧" },
+  { code: "+49", name: "Germany", flag: "🇩🇪" },
+  { code: "+33", name: "France", flag: "🇫🇷" },
+  { code: "+34", name: "Spain", flag: "🇪🇸" },
+  { code: "+39", name: "Italy", flag: "🇮🇹" },
+  { code: "+31", name: "Netherlands", flag: "🇳🇱" },
+  { code: "+32", name: "Belgium", flag: "🇧🇪" },
+  { code: "+41", name: "Switzerland", flag: "🇨🇭" },
+  { code: "+43", name: "Austria", flag: "🇦🇹" },
+  { code: "+46", name: "Sweden", flag: "🇸🇪" },
+  { code: "+47", name: "Norway", flag: "🇳🇴" },
+  { code: "+45", name: "Denmark", flag: "🇩🇰" },
+  { code: "+358", name: "Finland", flag: "🇫🇮" },
+  { code: "+7", name: "Russia", flag: "🇷🇺" },
+  { code: "+380", name: "Ukraine", flag: "🇺🇦" },
+  { code: "+48", name: "Poland", flag: "🇵🇱" },
+  { code: "+90", name: "Turkey", flag: "🇹🇷" },
+  { code: "+30", name: "Greece", flag: "🇬🇷" },
+  { code: "+90", name: "Cyprus", flag: "🇨🇾" },
+  { code: "+98", name: "Iran", flag: "🇮🇷" },
+  { code: "+92", name: "Pakistan", flag: "🇵🇰" },
+  { code: "+91", name: "India", flag: "🇮🇳" },
+  { code: "+880", name: "Bangladesh", flag: "🇧🇩" },
+  { code: "+94", name: "Sri Lanka", flag: "🇱🇰" },
+  { code: "+977", name: "Nepal", flag: "🇳🇵" },
+  { code: "+63", name: "Philippines", flag: "🇵🇭" },
+  { code: "+62", name: "Indonesia", flag: "🇮🇩" },
+  { code: "+60", name: "Malaysia", flag: "🇲🇾" },
+  { code: "+65", name: "Singapore", flag: "🇸🇬" },
+  { code: "+66", name: "Thailand", flag: "🇹🇭" },
+  { code: "+84", name: "Vietnam", flag: "🇻🇳" },
+  { code: "+82", name: "South Korea", flag: "🇰🇷" },
+  { code: "+81", name: "Japan", flag: "🇯🇵" },
+  { code: "+86", name: "China", flag: "🇨🇳" },
+  { code: "+61", name: "Australia", flag: "🇦🇺" },
+  { code: "+64", name: "New Zealand", flag: "🇳🇿" },
+  { code: "+27", name: "South Africa", flag: "🇿🇦" },
+  { code: "+234", name: "Nigeria", flag: "🇳🇬" },
+  { code: "+254", name: "Kenya", flag: "🇰🇪" },
+  { code: "+251", name: "Ethiopia", flag: "🇪🇹" },
+  { code: "+255", name: "Tanzania", flag: "🇹🇿" },
+  { code: "+52", name: "Mexico", flag: "🇲🇽" },
+  { code: "+55", name: "Brazil", flag: "🇧🇷" },
+  { code: "+54", name: "Argentina", flag: "🇦🇷" },
+  { code: "+57", name: "Colombia", flag: "🇨🇴" },
 ];
 
-const RSVP_DEADLINE = new Date("2026-05-07T23:59:59");
+const RSVP_DEADLINE = new Date("2026-07-01T23:59:59");
 const TOTAL_TABLES = 20;
 const SEATS_PER_TABLE = 10;
 const generateId = () =>
@@ -1182,7 +1239,7 @@ function RegistrationView({ t, lang, guests, addGuest }: any) {
   const [mobile, setMobile] = useState("");
   const [group, setGroup] = useState("Family of the Groom · Al-Nawfal");
   const [companionCount, setCompanionCount] = useState(0);
-  const [companions, setCompanions] = useState<{firstName: string; familyName: string}[]>([]);
+  const [companions, setCompanions] = useState<{id: string; firstName: string; familyName: string; countryCode: string; phone: string}[]>([]);
   const [errors, setErrors] = useState<any>({});
   const [submitted, setSubmitted] = useState<Guest | null>(null);
   const [sending, setSending] = useState(false);
@@ -1193,7 +1250,7 @@ function RegistrationView({ t, lang, guests, addGuest }: any) {
     setCompanionCount(n);
     setCompanions((prev) => {
       const arr = [...prev];
-      while (arr.length < n) arr.push({ firstName: "", familyName: "" });
+      while (arr.length < n) arr.push({ id: generateId(), firstName: "", familyName: "", countryCode: "+962", phone: "" });
       return arr.slice(0, n);
     });
   };
@@ -1310,31 +1367,14 @@ function RegistrationView({ t, lang, guests, addGuest }: any) {
           <CheckCircle2 size={14} color={C.light} />
           {t.register.reservedSeats(totalSeats)}
         </div>
-        {companions.length > 0 && (
-          <div style={{ marginBottom: 20, textAlign: isAr ? "right" : "left" }}>
-            <div style={{ fontSize: isAr ? 14 : 11, color: C.mid, fontFamily: "Cinzel,serif", letterSpacing: ".15em", marginBottom: 10, textAlign: "center" }}>
-              {isAr ? "المرافقون" : "ACCOMPANYING GUESTS"}
-            </div>
-            {[{ firstName: submitted.firstName, familyName: submitted.familyName }, ...companions].map((c, i) => (
-              <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "10px 16px", background: i % 2 === 0 ? "#fafaf7" : "#fff", borderRadius: 3, marginBottom: 2, fontFamily: isAr ? "Aref Ruqaa,Amiri,serif" : "Cormorant Garamond,serif", fontSize: isAr ? 16 : 18, color: C.dark }}>
-                <span>{i + 1}.</span>
-                <span>{c.firstName} {c.familyName}{i === 0 ? (isAr ? " (أنت)" : " (You)") : ""}</span>
-              </div>
-            ))}
-          </div>
-        )}
+        {/* Main guest QR card */}
         <div
           className="card"
-          style={{ textAlign: "center", borderColor: C.border }}
+          style={{ textAlign: "center", borderColor: C.border, marginBottom: 20 }}
         >
           <div
             className="cinzel"
-            style={{
-              fontSize: 12,
-              color: C.mid,
-              marginBottom: 10,
-              letterSpacing: ".2em",
-            }}
+            style={{ fontSize: 12, color: C.mid, marginBottom: 10, letterSpacing: ".2em" }}
           >
             {t.register.yourQR}
           </div>
@@ -1365,12 +1405,57 @@ function RegistrationView({ t, lang, guests, addGuest }: any) {
             <RealQRCode value={submitted.id} size={190} />
           </div>
           <div className="gold-s" style={{ marginBottom: 12 }}></div>
-          <div
-            style={{ fontSize: 12, color: C.muted, fontFamily: "monospace" }}
-          >
+          <div style={{ fontSize: 12, color: C.muted, fontFamily: "monospace" }}>
             REF · {submitted.id}
           </div>
         </div>
+
+        {/* Companion QR cards */}
+        {companions.map((c, idx) => (
+          <div
+            key={c.id}
+            className="card"
+            style={{ textAlign: "center", borderColor: C.border, marginBottom: 20 }}
+          >
+            <div
+              className="cinzel"
+              style={{ fontSize: 12, color: C.mid, marginBottom: 10, letterSpacing: ".2em" }}
+            >
+              {isAr ? `بطاقة المرافق ${idx + 1}` : `COMPANION ${idx + 1} PASS`}
+            </div>
+            <div
+              style={{
+                fontSize: isAr ? 16 : 15,
+                color: C.muted,
+                marginBottom: 24,
+                fontFamily: isAr ? "Aref Ruqaa,serif" : "Cormorant Garamond,serif",
+                fontStyle: isAr ? "normal" : "italic",
+              }}
+            >
+              {t.register.yourName} ·{" "}
+              <strong style={{ color: C.dark, fontStyle: "normal" }}>
+                {c.firstName || (isAr ? "مرافق" : "Companion")} {c.familyName}
+              </strong>
+            </div>
+            <div
+              style={{
+                border: `1px solid ${C.border}`,
+                display: "inline-block",
+                padding: 16,
+                background: "#fff",
+                marginBottom: 16,
+                borderRadius: 4,
+              }}
+            >
+              <RealQRCode value={c.id} size={190} />
+            </div>
+            <div className="gold-s" style={{ marginBottom: 12 }}></div>
+            <div style={{ fontSize: 12, color: C.muted, fontFamily: "monospace" }}>
+              REF · {c.id}
+            </div>
+          </div>
+        ))}
+
         <div
           style={{
             fontSize: isAr ? 15 : 14,
@@ -1579,7 +1664,7 @@ function RegistrationView({ t, lang, guests, addGuest }: any) {
             className={`input-box${isAr ? " ar-b" : ""}`}
             disabled={isPast}
           >
-            {[0,1,2,3,4,5,6,7,8,9].map((n) => (
+            {[0,1,2,3,4].map((n) => (
               <option key={n} value={n}>{n === 0 ? (isAr ? "لا يوجد مرافقون" : "None – just me") : `${n}`}</option>
             ))}
           </select>
@@ -1611,6 +1696,31 @@ function RegistrationView({ t, lang, guests, addGuest }: any) {
                 className={`input-box${isAr ? " ar-b" : ""}`}
                 disabled={isPast}
               />
+            </div>
+            <div className="field-wrap">
+              <label className={isAr ? "field-label-ar" : "field-label"}>{t.register.companionPhone}</label>
+              <div style={{ display: "flex", gap: 10, alignItems: "stretch" }} dir="ltr">
+                <select
+                  value={c.countryCode}
+                  onChange={(e) => setCompanions((p) => p.map((x, i) => i === idx ? {...x, countryCode: e.target.value} : x))}
+                  className="input-box"
+                  style={{ width: 150, flexShrink: 0, fontSize: 17, padding: "16px 36px 16px 16px" }}
+                  disabled={isPast}
+                >
+                  {ALLOWED_COUNTRIES.map((cc) => (
+                    <option key={cc.code + cc.name} value={cc.code}>{cc.flag} {cc.code}</option>
+                  ))}
+                </select>
+                <input
+                  type="tel"
+                  value={c.phone}
+                  onChange={(e) => setCompanions((p) => p.map((x, i) => i === idx ? {...x, phone: e.target.value} : x))}
+                  className="input-box"
+                  placeholder="79 123 4567"
+                  disabled={isPast}
+                  style={{ flex: 1 }}
+                />
+              </div>
             </div>
           </div>
         ))}
