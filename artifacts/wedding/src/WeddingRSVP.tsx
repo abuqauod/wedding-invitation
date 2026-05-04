@@ -353,7 +353,7 @@ const ALLOWED_COUNTRIES = [
 ];
 
 const RSVP_DEADLINE = new Date("2026-06-01T23:59:59");
-const TOTAL_TABLES = 20;
+const TOTAL_TABLES = 30;
 const SEATS_PER_TABLE = 10;
 const generateId = () =>
   "xxxxxxxxxxxx".replace(/x/g, () =>
