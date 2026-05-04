@@ -23,7 +23,7 @@ const INVITATION_PNG = path.join(ASSETS_DIR, "invitation.png");
 const WHITE_TOP = 1020;
 const WHITE_BOTTOM = 1326;
 const MARGIN = 14;
-const QR_SIZE = WHITE_BOTTOM - WHITE_TOP - MARGIN * 2; // 272px
+const QR_SIZE = WHITE_BOTTOM - WHITE_TOP - MARGIN * 2; // 278px
 const QR_LEFT = Math.round((1119 - QR_SIZE) / 2);
 const QR_TOP = WHITE_TOP + MARGIN;
 
