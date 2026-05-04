@@ -217,17 +217,74 @@ router.post("/guests/:id/resend", async (req, res) => {
     }
 
     const mediaUrl = `${publicBaseUrl(req)}/api/qr/${id}.jpg`;
-    const result = await sendWhatsApp({ to: guest.fullPhone, firstName: guest.firstName, lang: guest.lang, mediaUrl });
+    // Optional alternate delivery number (for sending to a shared phone on behalf of another guest)
+    const rawToPhone = req.body?.toPhone ? String(req.body.toPhone).trim() : null;
+    const deliveryPhone = rawToPhone || guest.fullPhone;
+    const result = await sendWhatsApp({ to: deliveryPhone, firstName: guest.firstName, lang: guest.lang, mediaUrl });
 
     if (result.ok) {
-      await db.update(guestsTable).set({ whatsappSent: true, whatsappSid: result.sid || "", whatsappError: null }).where(eq(guestsTable.id, id));
+      // Only mark whatsappSent when delivering to the guest's own number
+      if (!rawToPhone) {
+        await db.update(guestsTable).set({ whatsappSent: true, whatsappSid: result.sid || "", whatsappError: null }).where(eq(guestsTable.id, id));
+      }
       return res.json({ ok: true, sent: true, sid: result.sid });
     } else {
-      await db.update(guestsTable).set({ whatsappSent: false, whatsappError: result.error || "send_failed" }).where(eq(guestsTable.id, id));
+      if (!rawToPhone) {
+        await db.update(guestsTable).set({ whatsappSent: false, whatsappError: result.error || "send_failed" }).where(eq(guestsTable.id, id));
+      }
       return res.status(502).json({ ok: false, sent: false, error: result.error, code: result.code });
     }
   } catch (err: any) {
     logger.error({ err }, "resend WhatsApp failed");
+    return res.status(500).json({ ok: false, error: err?.message || "server_error" });
+  }
+});
+
+// POST /api/vip — admin quick-register a guest and send their pass immediately
+router.post("/vip", async (req, res) => {
+  try {
+    const { id, firstName, familyName, countryCode, mobile, fullPhone, group, lang } = req.body || {};
+    if (!id || !firstName || !familyName || !fullPhone) {
+      return res.status(400).json({ ok: false, error: "missing_fields" });
+    }
+
+    const existing = await db.select().from(guestsTable).where(eq(guestsTable.fullPhone, String(fullPhone))).limit(1);
+    if (existing.length > 0) {
+      return res.status(409).json({ ok: false, error: "duplicate_phone", guest: existing[0] });
+    }
+
+    const guestId = String(id);
+    const guestLang = lang === "ar" ? "ar" : "en";
+
+    await db.insert(guestsTable).values({
+      id: guestId,
+      primaryGuestId: null,
+      firstName: String(firstName),
+      familyName: String(familyName),
+      countryCode: String(countryCode || ""),
+      mobile: String(mobile || ""),
+      fullPhone: String(fullPhone),
+      group: String(group || ""),
+      lang: guestLang,
+      companions: null,
+    });
+
+    const composed = await buildPersonalizedInvitation({ id: guestId, firstName: String(firstName), familyName: String(familyName), lang: guestLang });
+    await fs.writeFile(path.join(QR_DIR, `${guestId}.jpg`), composed);
+
+    const mediaUrl = `${publicBaseUrl(req)}/api/qr/${guestId}.jpg`;
+    const result = await sendWhatsApp({ to: String(fullPhone), firstName: String(firstName), lang: guestLang, mediaUrl });
+
+    if (result.ok) {
+      await db.update(guestsTable).set({ whatsappSent: true, whatsappSid: result.sid || "", whatsappError: null }).where(eq(guestsTable.id, guestId));
+    } else {
+      await db.update(guestsTable).set({ whatsappSent: false, whatsappError: result.error || "send_failed" }).where(eq(guestsTable.id, guestId));
+    }
+
+    const [created] = await db.select().from(guestsTable).where(eq(guestsTable.id, guestId)).limit(1);
+    return res.json({ ok: true, guest: created, sent: result.ok, sid: result.sid, sendError: result.ok ? undefined : result.error });
+  } catch (err: any) {
+    logger.error({ err }, "VIP route error");
     return res.status(500).json({ ok: false, error: err?.message || "server_error" });
   }
 });

@@ -109,6 +109,8 @@ const TRANSLATIONS: any = {
       qr: "View Pass",
       resend: "Send Pass",
       resendSent: "Sent ✓",
+      sendTo: "Send to…",
+      quickAdd: "Quick Add VIP",
       selectSeat: "Select a table and seat below",
       close: "Close",
     },
@@ -239,6 +241,8 @@ const TRANSLATIONS: any = {
       qr: "عرض البطاقة",
       resend: "إرسال البطاقة",
       resendSent: "تم الإرسال ✓",
+      sendTo: "إرسال إلى…",
+      quickAdd: "إضافة VIP",
       selectSeat: "اختر الطاولة والمقعد",
       close: "إغلاق",
     },
@@ -1818,6 +1822,20 @@ function AdminView({ t, lang, guests, guestsLoading, updateGuest, deleteGuest, e
   const [sortCol, setSortCol] = useState<string>("registeredAt");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [resendingId, setResendingId] = useState<string | null>(null);
+  const [sendToGuest, setSendToGuest] = useState<Guest | null>(null);
+  const [sendToCC, setSendToCC] = useState("+962");
+  const [sendToPhone, setSendToPhone] = useState("");
+  const [sendToSending, setSendToSending] = useState(false);
+  const [sendToResult, setSendToResult] = useState<{ ok: boolean; msg: string } | null>(null);
+  const [showVip, setShowVip] = useState(false);
+  const [vipFirst, setVipFirst] = useState("");
+  const [vipFamily, setVipFamily] = useState("");
+  const [vipCC, setVipCC] = useState("+962");
+  const [vipMobile, setVipMobile] = useState("");
+  const [vipGroup, setVipGroup] = useState("Family of the Groom · Al-Nawfal");
+  const [vipLang, setVipLang] = useState<"ar" | "en">("ar");
+  const [vipSending, setVipSending] = useState(false);
+  const [vipResult, setVipResult] = useState<{ ok: boolean; msg: string } | null>(null);
   const [tableNames, setTableNames] = useState<Record<number, string>>(() => {
     try { return JSON.parse(localStorage.getItem("wedding_table_names") || "{}"); } catch { return {}; }
   });
@@ -1876,6 +1894,55 @@ function AdminView({ t, lang, guests, guestsLoading, updateGuest, deleteGuest, e
       await refreshGuests();
     } catch { /* ignore */ } finally {
       setResendingId(null);
+    }
+  };
+
+  const sendToAlternate = async () => {
+    if (!sendToGuest || !sendToPhone.trim()) return;
+    setSendToSending(true);
+    setSendToResult(null);
+    try {
+      const toPhone = `${sendToCC}${sendToPhone.replace(/\D/g, "")}`;
+      const r = await fetch(`/api/guests/${sendToGuest.id}/resend`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ toPhone }),
+      });
+      const data = await r.json().catch(() => ({}));
+      setSendToResult({ ok: data.ok, msg: data.ok ? (isAr ? "تم الإرسال بنجاح ✓" : "Sent successfully ✓") : (isAr ? "فشل الإرسال" : "Failed to send") });
+    } catch {
+      setSendToResult({ ok: false, msg: isAr ? "خطأ في الإرسال" : "Send error" });
+    } finally {
+      setSendToSending(false);
+    }
+  };
+
+  const addVipGuest = async () => {
+    if (!vipFirst.trim() || !vipFamily.trim() || !vipMobile.trim()) return;
+    setVipSending(true);
+    setVipResult(null);
+    const fp = `${vipCC}${vipMobile.replace(/\D/g, "")}`;
+    const id = generateId();
+    try {
+      const r = await fetch("/api/vip", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id, firstName: vipFirst.trim(), familyName: vipFamily.trim(), countryCode: vipCC, mobile: vipMobile.replace(/\D/g, ""), fullPhone: fp, group: vipGroup, lang: vipLang }),
+      });
+      const data = await r.json().catch(() => ({}));
+      if (data.ok) {
+        setVipResult({ ok: true, msg: data.sent ? (isAr ? "تمت الإضافة والإرسال بنجاح ✓" : "Registered & pass sent ✓") : (isAr ? "تمت الإضافة — فشل الإرسال" : "Registered — send failed") });
+        setVipFirst(""); setVipFamily(""); setVipMobile("");
+        await refreshGuests();
+      } else if (data.error === "duplicate_phone") {
+        setVipResult({ ok: false, msg: isAr ? "هذا الرقم مسجّل مسبقاً" : "This number is already registered." });
+      } else {
+        setVipResult({ ok: false, msg: isAr ? "حدث خطأ" : "Something went wrong." });
+      }
+    } catch {
+      setVipResult({ ok: false, msg: isAr ? "خطأ في الاتصال" : "Connection error." });
+    } finally {
+      setVipSending(false);
     }
   };
   const primaryGuests = guests.filter((g: Guest) => !g.primaryGuestId);
@@ -1939,6 +2006,13 @@ function AdminView({ t, lang, guests, guestsLoading, updateGuest, deleteGuest, e
           </div>
         </div>
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+          <button
+            onClick={() => { setShowVip(true); setVipResult(null); }}
+            className="btn-p"
+            style={{ fontSize: 11, padding: "10px 20px", background: C.dark }}
+          >
+            {isAr ? <span className="ar-b">{t.admin.quickAdd}</span> : t.admin.quickAdd}
+          </button>
           <button
             onClick={exportCSV}
             className="btn-s"
@@ -2189,6 +2263,9 @@ function AdminView({ t, lang, guests, guestsLoading, updateGuest, deleteGuest, e
                       <button onClick={() => setViewQR(g)} className="act-link">{t.admin.qr}</button>
                       <button onClick={() => resendPass(g)} className="act-link" disabled={resendingId === g.id} style={{ color: C.mid, opacity: resendingId === g.id ? 0.5 : 1 }}>
                         {resendingId === g.id ? "…" : t.admin.resend}
+                      </button>
+                      <button onClick={() => { setSendToGuest(g); setSendToPhone(""); setSendToCC("+962"); setSendToResult(null); }} className="act-link" style={{ color: C.gold }}>
+                        {t.admin.sendTo}
                       </button>
                       <button onClick={() => { if (window.confirm(isAr ? `حذف ${g.firstName} ${g.familyName}؟` : `Remove ${g.firstName} ${g.familyName}?`)) deleteGuest(g.id); }} className="act-link" style={{ color: "#b04040" }}>
                         {isAr ? "حذف" : "Delete"}
@@ -2452,6 +2529,118 @@ function AdminView({ t, lang, guests, guestsLoading, updateGuest, deleteGuest, e
             >
               {t.admin.close}
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Send to Alternate Number Modal ── */}
+      {sendToGuest && (
+        <div onClick={() => setSendToGuest(null)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.55)", backdropFilter: "blur(6px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: 16 }}>
+          <div onClick={(e) => e.stopPropagation()} className="fi" style={{ background: "#fff", border: `1px solid ${C.border}`, borderRadius: 6, padding: "40px 32px", maxWidth: 440, width: "100%", boxShadow: "0 8px 40px rgba(0,0,0,.2)" }}>
+            <div style={{ textAlign: "center", marginBottom: 28 }}>
+              <div className={isAr ? "ar-b" : "cinzel"} style={{ fontSize: isAr ? 14 : 10, color: C.mid, marginBottom: 8, letterSpacing: isAr ? 0 : ".2em" }}>
+                {isAr ? "إرسال بطاقة الضيف إلى" : "DELIVER ENTRY PASS TO"}
+              </div>
+              <div className={isAr ? "ar-d" : "serif"} style={{ fontSize: isAr ? 26 : 28, color: C.dark, marginBottom: 4, direction: "rtl" }}>
+                {sendToGuest.firstName} {sendToGuest.familyName}
+              </div>
+              <div className="gold-s" style={{ marginTop: 16 }}></div>
+            </div>
+            <div style={{ fontSize: isAr ? 14 : 13, color: C.muted, marginBottom: 18, fontFamily: isAr ? "Aref Ruqaa,serif" : "Cormorant Garamond,serif", fontStyle: isAr ? "normal" : "italic", textAlign: "center" }}>
+              {isAr ? "أدخل رقم واتساب آخر لاستلام هذه البطاقة. مفيد عندما لا يملك الضيف هاتفاً خاصاً." : "Enter any WhatsApp number to receive this guest's QR pass. Useful when a guest shares a phone."}
+            </div>
+            <div className="field-wrap">
+              <label className={isAr ? "field-label-ar" : "field-label"}>{isAr ? "رقم الواتساب" : "WhatsApp Number"}</label>
+              <div style={{ display: "flex", gap: 10, alignItems: "stretch" }} dir="ltr">
+                <CountrySelect value={sendToCC} onChange={setSendToCC} disabled={sendToSending} />
+                <input type="tel" value={sendToPhone} onChange={(e) => setSendToPhone(e.target.value)} className="input-box" placeholder="79 123 4567" disabled={sendToSending} style={{ flex: 1 }} />
+              </div>
+            </div>
+            {sendToResult && (
+              <div style={{ textAlign: "center", marginTop: 12, fontSize: 14, color: sendToResult.ok ? "#2d6a2d" : "#b04040", fontFamily: "Cormorant Garamond,serif" }}>
+                {sendToResult.msg}
+              </div>
+            )}
+            <div style={{ display: "flex", gap: 10, marginTop: 24 }}>
+              <button onClick={sendToAlternate} disabled={sendToSending || !sendToPhone.trim()} className="btn-p" style={{ flex: 1 }}>
+                {sendToSending ? "…" : (isAr ? <span className="ar-b">إرسال الآن</span> : "Send Now")}
+              </button>
+              <button onClick={() => setSendToGuest(null)} className="btn-s" style={{ flex: 1 }}>
+                {t.admin.close}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── VIP Quick Add Modal ── */}
+      {showVip && (
+        <div onClick={() => setShowVip(false)} style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.55)", backdropFilter: "blur(6px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 100, padding: 16 }}>
+          <div onClick={(e) => e.stopPropagation()} className="fi" style={{ background: "#fff", border: `1px solid ${C.border}`, borderRadius: 6, padding: "40px 32px", maxWidth: 500, width: "100%", maxHeight: "90vh", overflow: "auto", boxShadow: "0 8px 40px rgba(0,0,0,.2)" }}>
+            <div style={{ textAlign: "center", marginBottom: 28 }}>
+              <div className={isAr ? "ar-b" : "cinzel"} style={{ fontSize: isAr ? 14 : 10, color: C.gold, marginBottom: 8, letterSpacing: isAr ? 0 : ".2em" }}>
+                {isAr ? "إضافة سريعة" : "VIP · QUICK REGISTER"}
+              </div>
+              <div className={isAr ? "ar-d" : "serif"} style={{ fontSize: isAr ? 32 : 36, color: C.dark, lineHeight: 1.1 }}>
+                {isAr ? "إضافة VIP" : "Quick Add Guest"}
+              </div>
+              <div className="gold-s" style={{ marginTop: 16 }}></div>
+              <div style={{ fontSize: isAr ? 14 : 13, color: C.muted, marginTop: 14, fontFamily: isAr ? "Aref Ruqaa,serif" : "Cormorant Garamond,serif", fontStyle: isAr ? "normal" : "italic" }}>
+                {isAr ? "سجّل الضيف وأرسل له بطاقة الدخول فوراً عبر واتساب." : "Register a guest and deliver their entry pass via WhatsApp instantly."}
+              </div>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+              <div style={{ display: "flex", gap: 12 }}>
+                <div className="field-wrap" style={{ flex: 1 }}>
+                  <label className={isAr ? "field-label-ar" : "field-label"}>{isAr ? "الاسم الأول" : "First Name"}</label>
+                  <input type="text" value={vipFirst} onChange={(e) => setVipFirst(e.target.value)} className={`input-box${isAr ? " ar-b" : ""}`} disabled={vipSending} placeholder={isAr ? "الاسم" : "First"} />
+                </div>
+                <div className="field-wrap" style={{ flex: 1 }}>
+                  <label className={isAr ? "field-label-ar" : "field-label"}>{isAr ? "اسم العائلة" : "Family Name"}</label>
+                  <input type="text" value={vipFamily} onChange={(e) => setVipFamily(e.target.value)} className={`input-box${isAr ? " ar-b" : ""}`} disabled={vipSending} placeholder={isAr ? "العائلة" : "Family"} />
+                </div>
+              </div>
+              <div className="field-wrap">
+                <label className={isAr ? "field-label-ar" : "field-label"}>{isAr ? "رقم الواتساب" : "WhatsApp Number"}</label>
+                <div style={{ display: "flex", gap: 10, alignItems: "stretch" }} dir="ltr">
+                  <CountrySelect value={vipCC} onChange={setVipCC} disabled={vipSending} />
+                  <input type="tel" value={vipMobile} onChange={(e) => setVipMobile(e.target.value)} className="input-box" placeholder="79 123 4567" disabled={vipSending} style={{ flex: 1 }} />
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: 12 }}>
+                <div className="field-wrap" style={{ flex: 1 }}>
+                  <label className={isAr ? "field-label-ar" : "field-label"}>{isAr ? "ضيف" : "Guest of"}</label>
+                  <select value={vipGroup} onChange={(e) => setVipGroup(e.target.value)} className={`input-box${isAr ? " ar-b" : ""}`} disabled={vipSending}>
+                    <option value="Family of the Groom · Al-Nawfal">{isAr ? "عائلة العريس (آل نوفل)" : "Family of the Groom"}</option>
+                    <option value="Family of the Bride · Al-Thabatah">{isAr ? "عائلة العروس (آل الثبتة)" : "Family of the Bride"}</option>
+                    <option value="Friends">{isAr ? "الأصدقاء" : "Friends"}</option>
+                  </select>
+                </div>
+                <div className="field-wrap" style={{ flex: 1 }}>
+                  <label className={isAr ? "field-label-ar" : "field-label"}>{isAr ? "لغة البطاقة" : "Card Language"}</label>
+                  <select value={vipLang} onChange={(e) => setVipLang(e.target.value as "ar" | "en")} className="input-box" disabled={vipSending}>
+                    <option value="ar">العربية</option>
+                    <option value="en">English</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {vipResult && (
+              <div style={{ textAlign: "center", marginTop: 20, padding: "12px 16px", borderRadius: 4, background: vipResult.ok ? "#f0f7ec" : "#fff3f3", fontSize: 15, color: vipResult.ok ? "#2d6a2d" : "#b04040", fontFamily: "Cormorant Garamond,serif" }}>
+                {vipResult.msg}
+              </div>
+            )}
+
+            <div style={{ display: "flex", gap: 10, marginTop: 28 }}>
+              <button onClick={addVipGuest} disabled={vipSending || !vipFirst.trim() || !vipFamily.trim() || !vipMobile.trim()} className="btn-p" style={{ flex: 2 }}>
+                {vipSending ? "…" : (isAr ? <span className="ar-b">تسجيل وإرسال البطاقة</span> : "Register & Send Pass")}
+              </button>
+              <button onClick={() => { setShowVip(false); setVipResult(null); }} className="btn-s" style={{ flex: 1 }}>
+                {t.admin.close}
+              </button>
+            </div>
           </div>
         </div>
       )}
