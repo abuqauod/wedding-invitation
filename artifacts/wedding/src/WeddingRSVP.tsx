@@ -180,7 +180,7 @@ const TRANSLATIONS: any = {
       city: "عمّان · الأردن",
       childrenNotice: "حسب سياسة الفندق يمنع اصطحاب الأطفال",
       rsvpTitle: "الرجاء تأكيد الحضور",
-      rsvpDeadline: "قبل الأول من حزيران",
+      rsvpDeadline: "قبل الأول من يونيو",
       cta: "تأكيد الحضور",
     },
     register: {
