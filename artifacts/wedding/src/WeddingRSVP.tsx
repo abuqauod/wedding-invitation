@@ -46,7 +46,7 @@ const TRANSLATIONS: any = {
       childrenNotice:
         "Per hotel policy, the presence of children is respectfully declined",
       rsvpTitle: "KINDLY RESPOND",
-      rsvpDeadline: "BY THE 1ST OF JULY",
+      rsvpDeadline: "BY THE 1ST OF JUNE",
       cta: "Confirm Attendance",
     },
     register: {
@@ -75,8 +75,7 @@ const TRANSLATIONS: any = {
         "Please present this pass at the entrance of The Ritz-Carlton on the evening of the celebration.",
       companions: "Additional Guests",
       companionsHint: "How many guests are joining you? (max 4)",
-      companionFirst: "Companion's First Name",
-      companionFamily: "Companion's Family Name",
+      companionName: "Companion's Full Name",
       companionPhone: "Companion's Phone Number",
       reservedSeats: (n: number) => n === 1 ? "We have reserved a seat in your honor." : `We have reserved ${n} seats in your honour.`,
     },
@@ -181,7 +180,7 @@ const TRANSLATIONS: any = {
       city: "عمّان · الأردن",
       childrenNotice: "حسب سياسة الفندق يمنع اصطحاب الأطفال",
       rsvpTitle: "الرجاء تأكيد الحضور",
-      rsvpDeadline: "قبل الأول من تموز",
+      rsvpDeadline: "قبل الأول من حزيران",
       cta: "تأكيد الحضور",
     },
     register: {
@@ -210,8 +209,7 @@ const TRANSLATIONS: any = {
         "الرجاء تقديم هذه البطاقة عند مدخل فندق ريتز كارلتون مساء الحفل.",
       companions: "مرافقون",
       companionsHint: "كم عدد المرافقين لك؟ (بحد أقصى 4)",
-      companionFirst: "الاسم الأول للمرافق",
-      companionFamily: "اسم العائلة للمرافق",
+      companionName: "الاسم الكامل للمرافق",
       companionPhone: "رقم هاتف المرافق",
       reservedSeats: (n: number) => n === 1 ? "لقد حجزنا لكم مقعداً خُصّص بمحبة." : `لقد حجزنا لكم ${n} مقاعد خُصّصت بمحبة.`,
     },
@@ -358,7 +356,7 @@ const ALLOWED_COUNTRIES = [
   { code: "+57", name: "Colombia", flag: "🇨🇴" },
 ];
 
-const RSVP_DEADLINE = new Date("2026-07-01T23:59:59");
+const RSVP_DEADLINE = new Date("2026-06-01T23:59:59");
 const TOTAL_TABLES = 20;
 const SEATS_PER_TABLE = 10;
 const generateId = () =>
@@ -1241,7 +1239,7 @@ function RegistrationView({ t, lang, guests, addGuest }: any) {
   const [mobile, setMobile] = useState("");
   const [group, setGroup] = useState("Family of the Groom · Al-Nawfal");
   const [companionCount, setCompanionCount] = useState(0);
-  const [companions, setCompanions] = useState<{id: string; firstName: string; familyName: string; countryCode: string; phone: string}[]>([]);
+  const [companions, setCompanions] = useState<{id: string; name: string; countryCode: string; phone: string}[]>([]);
   const [errors, setErrors] = useState<any>({});
   const [submitted, setSubmitted] = useState<Guest | null>(null);
   const [sending, setSending] = useState(false);
@@ -1252,7 +1250,7 @@ function RegistrationView({ t, lang, guests, addGuest }: any) {
     setCompanionCount(n);
     setCompanions((prev) => {
       const arr = [...prev];
-      while (arr.length < n) arr.push({ id: generateId(), firstName: "", familyName: "", countryCode: "+962", phone: "" });
+      while (arr.length < n) arr.push({ id: generateId(), name: "", countryCode: "+962", phone: "" });
       return arr.slice(0, n);
     });
   };
@@ -1297,7 +1295,7 @@ function RegistrationView({ t, lang, guests, addGuest }: any) {
           fullPhone: ng.fullPhone,
           group: ng.group,
           lang,
-          companions: companions.filter(c => c.firstName.trim() || c.familyName.trim()),
+          companions: companions.filter(c => c.name.trim()).map(c => ({ id: c.id, firstName: c.name.trim(), familyName: "", countryCode: c.countryCode, phone: c.phone })),
         }),
       });
     } catch { /* ignore network errors — guest is already saved optimistically */ } finally {
@@ -1436,7 +1434,7 @@ function RegistrationView({ t, lang, guests, addGuest }: any) {
             >
               {t.register.yourName} ·{" "}
               <strong style={{ color: C.dark, fontStyle: "normal" }}>
-                {c.firstName || (isAr ? "مرافق" : "Companion")} {c.familyName}
+                {c.name || (isAr ? "مرافق" : "Companion")}
               </strong>
             </div>
             <div
@@ -1680,23 +1678,14 @@ function RegistrationView({ t, lang, guests, addGuest }: any) {
               {isAr ? `المرافق ${idx + 1}` : `Companion ${idx + 1}`}
             </div>
             <div className="field-wrap">
-              <label className={isAr ? "field-label-ar" : "field-label"}>{t.register.companionFirst}</label>
+              <label className={isAr ? "field-label-ar" : "field-label"}>{t.register.companionName}</label>
               <input
                 type="text"
-                value={c.firstName}
-                onChange={(e) => setCompanions((p) => p.map((x, i) => i === idx ? {...x, firstName: e.target.value} : x))}
+                value={c.name}
+                onChange={(e) => setCompanions((p) => p.map((x, i) => i === idx ? {...x, name: e.target.value} : x))}
                 className={`input-box${isAr ? " ar-b" : ""}`}
                 disabled={isPast}
-              />
-            </div>
-            <div className="field-wrap">
-              <label className={isAr ? "field-label-ar" : "field-label"}>{t.register.companionFamily}</label>
-              <input
-                type="text"
-                value={c.familyName}
-                onChange={(e) => setCompanions((p) => p.map((x, i) => i === idx ? {...x, familyName: e.target.value} : x))}
-                className={`input-box${isAr ? " ar-b" : ""}`}
-                disabled={isPast}
+                placeholder={isAr ? "الاسم الكامل" : "Full name"}
               />
             </div>
             <div className="field-wrap">
@@ -1901,7 +1890,19 @@ function AdminView({ t, lang, guests, guestsLoading, updateGuest, deleteGuest, e
   const [sortCol, setSortCol] = useState<string>("registeredAt");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [resendingId, setResendingId] = useState<string | null>(null);
+  const [tableNames, setTableNames] = useState<Record<number, string>>(() => {
+    try { return JSON.parse(localStorage.getItem("wedding_table_names") || "{}"); } catch { return {}; }
+  });
+  const [renamingTable, setRenamingTable] = useState<number | null>(null);
+  const [renameInput, setRenameInput] = useState("");
   const isAr = lang === "ar";
+
+  const saveTableName = (tn: number, name: string) => {
+    const updated = { ...tableNames, [tn]: name.trim() };
+    setTableNames(updated);
+    localStorage.setItem("wedding_table_names", JSON.stringify(updated));
+    setRenamingTable(null);
+  };
   if (!auth)
     return <LoginGate t={t} lang={lang} onSuccess={(role: string) => setAuth(role === "admin")} />;
 
@@ -1949,7 +1950,9 @@ function AdminView({ t, lang, guests, guestsLoading, updateGuest, deleteGuest, e
   const resendPass = async (g: Guest) => {
     setResendingId(g.id);
     try {
-      await fetch(`/api/guests/${g.id}/resend`, { method: "POST" });
+      const r = await fetch(`/api/guests/${g.id}/resend`, { method: "POST" });
+      const data = await r.json().catch(() => ({}));
+      if (data.ok) updateGuest(g.id, { whatsappSent: true });
       await refreshGuests();
     } catch { /* ignore */ } finally {
       setResendingId(null);
@@ -2374,17 +2377,34 @@ function AdminView({ t, lang, guests, guestsLoading, updateGuest, deleteGuest, e
                       background: "#fafaf7",
                     }}
                   >
-                    <div
-                      className={isAr ? "ar-b" : "cinzel"}
-                      style={{
-                        fontSize: isAr ? 12 : 10,
-                        color: C.mid,
-                        marginBottom: 8,
-                        textAlign: "center",
-                        letterSpacing: isAr ? 0 : ".15em",
-                      }}
-                    >
-                      {isAr ? `طاولة ${tn}` : `TABLE ${String(tn).padStart(2, "0")}`}
+                    <div style={{ marginBottom: 8, textAlign: "center" }}>
+                      {renamingTable === tn ? (
+                        <div style={{ display: "flex", gap: 3, alignItems: "center", justifyContent: "center" }}>
+                          <input
+                            autoFocus
+                            value={renameInput}
+                            onChange={(e) => setRenameInput(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") saveTableName(tn, renameInput);
+                              if (e.key === "Escape") setRenamingTable(null);
+                            }}
+                            style={{ width: 80, fontSize: 10, padding: "2px 4px", fontFamily: "Cinzel,serif", border: `1px solid ${C.border}`, borderRadius: 2 }}
+                          />
+                          <button onClick={() => saveTableName(tn, renameInput)} style={{ background: "none", border: "none", cursor: "pointer", color: C.gold, fontSize: 12, padding: "0 2px" }}>✓</button>
+                          <button onClick={() => setRenamingTable(null)} style={{ background: "none", border: "none", cursor: "pointer", color: C.muted, fontSize: 12, padding: "0 2px" }}>✕</button>
+                        </div>
+                      ) : (
+                        <div style={{ display: "flex", gap: 4, alignItems: "center", justifyContent: "center" }}>
+                          <span className={isAr ? "ar-b" : "cinzel"} style={{ fontSize: isAr ? 12 : 10, color: C.mid, letterSpacing: isAr ? 0 : ".15em" }}>
+                            {tableNames[tn] || (isAr ? `طاولة ${tn}` : `TABLE ${String(tn).padStart(2, "0")}`)}
+                          </span>
+                          <button
+                            onClick={() => { setRenamingTable(tn); setRenameInput(tableNames[tn] || ""); }}
+                            title="Rename table"
+                            style={{ background: "none", border: "none", cursor: "pointer", color: C.muted, fontSize: 10, padding: 0, lineHeight: 1, opacity: 0.6 }}
+                          >✎</button>
+                        </div>
+                      )}
                     </div>
                     <div
                       style={{
