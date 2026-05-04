@@ -141,7 +141,7 @@ const TRANSLATIONS: any = {
       manualLabel: "Manual Lookup",
       manualPlaceholder: "Paste or type the guest reference code…",
       checkByID: "Check In Guest",
-      quickTest: "Recent Guests",
+      quickTest: "Check In Guest By Name",
       welcome: "WELCOME",
       alreadyIn: "ALREADY CHECKED IN",
       phone: "Phone",
@@ -275,7 +275,7 @@ const TRANSLATIONS: any = {
       manualLabel: "بحث يدوي",
       manualPlaceholder: "أدخل الرمز المرجعي للضيف…",
       checkByID: "تسجيل وصول الضيف",
-      quickTest: "ضيوف حديثون",
+      quickTest: "تسجيل الحضور بالاسم",
       welcome: "أهلاً وسهلاً",
       alreadyIn: "تم تسجيل الدخول مسبقاً",
       phone: "الرقم",
@@ -3124,9 +3124,11 @@ function ScannerContent({ t, lang, guests, updateGuest, refreshGuests, authRole,
                 .filter((g: Guest) => {
                   const q = (manualId.startsWith("ql:") ? manualId.slice(3) : "").toLowerCase().trim();
                   if (!q) return true;
-                  return `${g.firstName} ${g.familyName}`.toLowerCase().includes(q);
+                  const nameMatch = `${g.firstName} ${g.familyName}`.toLowerCase().includes(q);
+                  const phoneMatch = g.fullPhone.replace(/\s/g, "").includes(q.replace(/\s/g, ""));
+                  return nameMatch || phoneMatch;
                 })
-                .slice(0, 8)
+                .slice(0, 20)
                 .map((g: Guest) => (
                   <button
                     key={g.id}
@@ -3135,18 +3137,30 @@ function ScannerContent({ t, lang, guests, updateGuest, refreshGuests, authRole,
                       textAlign: isAr ? "right" : "left",
                       background: g.checkedInAt ? "#f0f7ec" : "#fafaf7",
                       border: "none",
-                      padding: "12px 16px",
+                      padding: "10px 16px",
                       cursor: "pointer",
-                      fontFamily: isAr ? "Aref Ruqaa,Amiri,serif" : "Cormorant Garamond,serif",
-                      fontSize: isAr ? 16 : 18,
-                      color: C.dark,
                       transition: "background .2s",
                       display: "flex",
                       justifyContent: "space-between",
                       alignItems: "center",
                     }}
                   >
-                    <span>{g.firstName} {g.familyName}</span>
+                    <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                      <span style={{
+                        fontFamily: isAr ? "Aref Ruqaa,Amiri,serif" : "Cormorant Garamond,serif",
+                        fontSize: isAr ? 16 : 18,
+                        color: C.dark,
+                        lineHeight: 1.2,
+                      }}>{g.firstName} {g.familyName}</span>
+                      {!g.fullPhone.startsWith("companion-") && (
+                        <span style={{
+                          fontSize: 11,
+                          color: C.muted,
+                          fontFamily: "monospace",
+                          letterSpacing: ".04em",
+                        }} dir="ltr">{g.fullPhone}</span>
+                      )}
+                    </div>
                     {g.checkedInAt && <CheckCircle2 size={14} color={C.light} />}
                   </button>
                 ))}
