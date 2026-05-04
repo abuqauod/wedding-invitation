@@ -1576,7 +1576,7 @@ function RegistrationView({ t, lang, guests, addGuest }: any) {
             value={fullName}
             onChange={(e) => setFullName(e.target.value)}
             className={`input-box${isAr ? " ar-b" : ""}`}
-            placeholder={isAr ? "محمد أبو شامية" : "e.g. Mohammad Abu Shamieh"}
+            placeholder=""
             disabled={isPast}
           />
           {errors.fullName && (
