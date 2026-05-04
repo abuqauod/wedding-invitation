@@ -353,8 +353,14 @@ const ALLOWED_COUNTRIES = [
 ];
 
 const RSVP_DEADLINE = new Date("2026-06-01T23:59:59");
-const TOTAL_TABLES = 30;
+const TOTAL_TABLES = 96;          // 48 Women + 48 Men
+const WOMEN_TABLES = 48;
 const SEATS_PER_TABLE = 10;
+
+function tableLabel(tn: number, isAr: boolean): string {
+  if (tn <= WOMEN_TABLES) return isAr ? `نساء ${tn}` : `Women ${tn}`;
+  return isAr ? `رجال ${tn - WOMEN_TABLES}` : `Men ${tn - WOMEN_TABLES}`;
+}
 const generateId = () =>
   "xxxxxxxxxxxx".replace(/x/g, () =>
     Math.floor(Math.random() * 16).toString(16),
@@ -2226,8 +2232,8 @@ function AdminView({ t, lang, guests, guestsLoading, updateGuest, deleteGuest, e
                   </td>
                   <td style={{ padding: "16px 14px" }}>
                     {g.tableNumber ? (
-                      <div className="cinzel" style={{ fontSize: 12, color: C.dark }}>
-                        T{String(g.tableNumber).padStart(2, "0")} · S{String(g.seatNumber).padStart(2, "0")}
+                      <div className="cinzel" style={{ fontSize: 11, color: C.dark }}>
+                        {tableLabel(g.tableNumber!, isAr)} · S{String(g.seatNumber).padStart(2, "0")}
                       </div>
                     ) : (
                       <div style={{ fontSize: 14, color: "#bbb", fontFamily: "Cormorant Garamond,serif", fontStyle: "italic" }}>
@@ -2303,7 +2309,7 @@ function AdminView({ t, lang, guests, guestsLoading, updateGuest, deleteGuest, e
               border: `1px solid ${C.border}`,
               borderRadius: 6,
               padding: "40px 32px",
-              maxWidth: 720,
+              maxWidth: 1040,
               width: "100%",
               maxHeight: "90vh",
               overflow: "auto",
@@ -2341,109 +2347,55 @@ function AdminView({ t, lang, guests, guestsLoading, updateGuest, deleteGuest, e
               </div>
               <div className="gold-s"></div>
             </div>
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fill,minmax(150px,1fr))",
-                gap: 12,
-                marginBottom: 28,
-              }}
-            >
-              {Array.from({ length: TOTAL_TABLES }).map((_, tIdx) => {
-                const tn = tIdx + 1;
-                const occ = getOcc(tn);
-                return (
-                  <div
-                    key={tn}
-                    style={{
-                      border: `1px solid ${C.border}`,
-                      borderRadius: 4,
-                      padding: "12px",
-                      background: "#fafaf7",
-                    }}
-                  >
-                    <div style={{ marginBottom: 8, textAlign: "center" }}>
-                      {renamingTable === tn ? (
-                        <div style={{ display: "flex", gap: 3, alignItems: "center", justifyContent: "center" }}>
-                          <input
-                            autoFocus
-                            value={renameInput}
-                            onChange={(e) => setRenameInput(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") saveTableName(tn, renameInput);
-                              if (e.key === "Escape") setRenamingTable(null);
-                            }}
-                            style={{ width: 80, fontSize: 10, padding: "2px 4px", fontFamily: "Cinzel,serif", border: `1px solid ${C.border}`, borderRadius: 2 }}
-                          />
-                          <button onClick={() => saveTableName(tn, renameInput)} style={{ background: "none", border: "none", cursor: "pointer", color: C.gold, fontSize: 12, padding: "0 2px" }}>✓</button>
-                          <button onClick={() => setRenamingTable(null)} style={{ background: "none", border: "none", cursor: "pointer", color: C.muted, fontSize: 12, padding: "0 2px" }}>✕</button>
-                        </div>
-                      ) : (
-                        <div style={{ display: "flex", gap: 4, alignItems: "center", justifyContent: "center" }}>
-                          <span className={isAr ? "ar-b" : "cinzel"} style={{ fontSize: isAr ? 12 : 10, color: C.mid, letterSpacing: isAr ? 0 : ".15em" }}>
-                            {tableNames[tn] || (isAr ? `طاولة ${tn}` : `TABLE ${String(tn).padStart(2, "0")}`)}
-                          </span>
-                          <button
-                            onClick={() => { setRenamingTable(tn); setRenameInput(tableNames[tn] || ""); }}
-                            title="Rename table"
-                            style={{ background: "none", border: "none", cursor: "pointer", color: C.muted, fontSize: 10, padding: 0, lineHeight: 1, opacity: 0.6 }}
-                          >✎</button>
-                        </div>
-                      )}
-                    </div>
-                    <div
-                      style={{
-                        display: "grid",
-                        gridTemplateColumns: "repeat(5,1fr)",
-                        gap: 3,
-                      }}
-                    >
-                      {Array.from({ length: SEATS_PER_TABLE }).map(
-                        (_, sIdx) => {
-                          const sn = sIdx + 1;
-                          const isOcc =
-                            occ.includes(sn) &&
-                            !(
-                              selGuest.tableNumber === tn &&
-                              selGuest.seatNumber === sn
-                            );
-                          const isMine =
-                            selGuest.tableNumber === tn &&
-                            selGuest.seatNumber === sn;
-                          return (
-                            <button
-                              key={sn}
-                              disabled={isOcc}
-                              onClick={() => assignSeat(selGuest.id, tn, sn)}
-                              style={{
-                                padding: 5,
-                                fontSize: 10,
-                                background: isMine
-                                  ? C.dark
-                                  : isOcc
-                                    ? "#f0ece0"
-                                    : "#fff",
-                                color: isMine
-                                  ? "#fff"
-                                  : isOcc
-                                    ? "#ccc"
-                                    : C.dark,
-                                border: `1px solid ${isMine ? C.dark : C.border}`,
-                                cursor: isOcc ? "not-allowed" : "pointer",
-                                borderRadius: 2,
-                                fontFamily: "Cinzel,serif",
-                                transition: "all .2s",
-                              }}
-                            >
-                              {String(sn).padStart(2, "0")}
-                            </button>
-                          );
-                        },
-                      )}
-                    </div>
+            <div style={{ display: "flex", gap: 20, marginBottom: 28 }}>
+              {[
+                { label: isAr ? "نساء" : "WOMEN", start: 1, count: WOMEN_TABLES },
+                { label: isAr ? "رجال" : "MEN", start: WOMEN_TABLES + 1, count: TOTAL_TABLES - WOMEN_TABLES },
+              ].map(({ label, start, count }) => (
+                <div key={label} style={{ flex: 1, minWidth: 0 }}>
+                  <div className={isAr ? "ar-b" : "cinzel"} style={{ fontSize: isAr ? 15 : 10, color: C.mid, textAlign: "center", letterSpacing: isAr ? 0 : ".2em", paddingBottom: 10, marginBottom: 10, borderBottom: `2px solid ${C.border}` }}>
+                    {label}
                   </div>
-                );
-              })}
+                  <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 6 }}>
+                    {Array.from({ length: count }).map((_, i) => {
+                      const tn = start + i;
+                      const occ = getOcc(tn);
+                      return (
+                        <div key={tn} style={{ border: `1px solid ${C.border}`, borderRadius: 3, padding: "8px 6px", background: "#fafaf7" }}>
+                          <div style={{ marginBottom: 6, textAlign: "center" }}>
+                            {renamingTable === tn ? (
+                              <div style={{ display: "flex", gap: 2, alignItems: "center", justifyContent: "center" }}>
+                                <input autoFocus value={renameInput} onChange={(e) => setRenameInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") saveTableName(tn, renameInput); if (e.key === "Escape") setRenamingTable(null); }} style={{ width: 64, fontSize: 9, padding: "2px 3px", fontFamily: "Cinzel,serif", border: `1px solid ${C.border}`, borderRadius: 2 }} />
+                                <button onClick={() => saveTableName(tn, renameInput)} style={{ background: "none", border: "none", cursor: "pointer", color: C.gold, fontSize: 11, padding: "0 2px" }}>✓</button>
+                                <button onClick={() => setRenamingTable(null)} style={{ background: "none", border: "none", cursor: "pointer", color: C.muted, fontSize: 11, padding: "0 2px" }}>✕</button>
+                              </div>
+                            ) : (
+                              <div style={{ display: "flex", gap: 3, alignItems: "center", justifyContent: "center" }}>
+                                <span className={isAr ? "ar-b" : "cinzel"} style={{ fontSize: isAr ? 10 : 8, color: C.mid, letterSpacing: isAr ? 0 : ".1em" }}>
+                                  {tableNames[tn] || tableLabel(tn, isAr)}
+                                </span>
+                                <button onClick={() => { setRenamingTable(tn); setRenameInput(tableNames[tn] || ""); }} title="Rename" style={{ background: "none", border: "none", cursor: "pointer", color: C.muted, fontSize: 9, padding: 0, lineHeight: 1, opacity: 0.5 }}>✎</button>
+                              </div>
+                            )}
+                          </div>
+                          <div style={{ display: "grid", gridTemplateColumns: "repeat(5,1fr)", gap: 2 }}>
+                            {Array.from({ length: SEATS_PER_TABLE }).map((_, sIdx) => {
+                              const sn = sIdx + 1;
+                              const isOcc = occ.includes(sn) && !(selGuest.tableNumber === tn && selGuest.seatNumber === sn);
+                              const isMine = selGuest.tableNumber === tn && selGuest.seatNumber === sn;
+                              return (
+                                <button key={sn} disabled={isOcc} onClick={() => assignSeat(selGuest.id, tn, sn)} style={{ padding: 3, fontSize: 9, background: isMine ? C.dark : isOcc ? "#f0ece0" : "#fff", color: isMine ? "#fff" : isOcc ? "#ccc" : C.dark, border: `1px solid ${isMine ? C.dark : C.border}`, cursor: isOcc ? "not-allowed" : "pointer", borderRadius: 2, fontFamily: "Cinzel,serif", transition: "all .2s" }}>
+                                  {String(sn).padStart(2, "0")}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              ))}
             </div>
             <div style={{ textAlign: "center" }}>
               <button onClick={() => setSelGuest(null)} className="btn-s">
@@ -3416,41 +3368,23 @@ function ScannerContent({ t, lang, guests, updateGuest, refreshGuests, authRole,
                       >
                         {t.scanner.proceed}
                       </div>
-                      <div
-                        style={{
-                          display: "grid",
-                          gridTemplateColumns: "1fr 1fr",
-                          gap: 20,
-                        }}
-                      >
-                        {[
-                          [t.scanner.table, scannedGuest.tableNumber],
-                          [t.scanner.seat, scannedGuest.seatNumber],
-                        ].map(([l, v]: any) => (
-                          <div key={l}>
-                            <div
-                              className="cinzel"
-                              style={{
-                                fontSize: 9,
-                                color: "#888",
-                                marginBottom: 4,
-                                letterSpacing: ".15em",
-                              }}
-                            >
-                              {String(l).toUpperCase()}
-                            </div>
-                            <div
-                              className="serif"
-                              style={{
-                                fontSize: 52,
-                                color: "#fff",
-                                lineHeight: 1,
-                              }}
-                            >
-                              {String(v).padStart(2, "0")}
-                            </div>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+                        <div>
+                          <div className="cinzel" style={{ fontSize: 9, color: "#888", marginBottom: 4, letterSpacing: ".15em" }}>
+                            {String(t.scanner.table).toUpperCase()}
                           </div>
-                        ))}
+                          <div className={isAr ? "ar-b" : "serif"} style={{ fontSize: 28, color: "#fff", lineHeight: 1.3 }}>
+                            {tableLabel(scannedGuest.tableNumber!, isAr)}
+                          </div>
+                        </div>
+                        <div>
+                          <div className="cinzel" style={{ fontSize: 9, color: "#888", marginBottom: 4, letterSpacing: ".15em" }}>
+                            {String(t.scanner.seat).toUpperCase()}
+                          </div>
+                          <div className="serif" style={{ fontSize: 52, color: "#fff", lineHeight: 1 }}>
+                            {String(scannedGuest.seatNumber).padStart(2, "0")}
+                          </div>
+                        </div>
                       </div>
                     </div>
                   ) : (
