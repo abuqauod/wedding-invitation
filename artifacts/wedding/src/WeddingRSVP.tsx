@@ -53,8 +53,7 @@ const TRANSLATIONS: any = {
       chapter: "RSVP",
       title: "Confirm Your Presence",
       subtitle: "We humbly request the favor of your response",
-      firstName: "First Name",
-      familyName: "Family Name",
+      fullName: "Full Name",
       mobile: "Mobile Number",
       mobileHint: "For WhatsApp delivery of your entry pass",
       guestOf: "I am a guest of",
@@ -162,7 +161,7 @@ const TRANSLATIONS: any = {
     landing: {
       bismillah: "بسم الله الرحمن الرحيم",
       verse: "وجعل بينكم مودة ورحمة",
-      together: "بحضور عائلتيهم",
+      together: "مع عائلتهم",
       groomFamily: "عائلة السيد",
       groomName: "جهاد جميل أبو شامية",
       groomHouse: "آل نوفل",
@@ -185,8 +184,7 @@ const TRANSLATIONS: any = {
       chapter: "تأكيد الحضور",
       title: "تأكيد الحضور",
       subtitle: "نتشرف بتلقي تأكيدكم الكريم",
-      firstName: "الاسم الأول",
-      familyName: "اسم العائلة",
+      fullName: "الاسم الكامل",
       mobile: "رقم الجوال",
       mobileHint: "لإرسال بطاقة الدخول عبر الواتساب",
       guestOf: "أنا ضيف",
@@ -1311,8 +1309,7 @@ function CountrySelect({ value, onChange, disabled }: { value: string; onChange:
 
 /* ──────────────────────────── REGISTRATION ──────────────────────────── */
 function RegistrationView({ t, lang, guests, addGuest }: any) {
-  const [firstName, setFirstName] = useState("");
-  const [familyName, setFamilyName] = useState("");
+  const [fullName, setFullName] = useState("");
   const [countryCode, setCountryCode] = useState("+962");
   const [mobile, setMobile] = useState("");
   const [group, setGroup] = useState("Family of the Groom · Al-Nawfal");
@@ -1324,8 +1321,7 @@ function RegistrationView({ t, lang, guests, addGuest }: any) {
 
   const handleSubmit = async () => {
     const e: any = {};
-    if (!firstName.trim()) e.firstName = t.register.required;
-    if (!familyName.trim()) e.familyName = t.register.required;
+    if (!fullName.trim()) e.fullName = t.register.required;
     if (!mobile.trim()) e.mobile = t.register.required;
     else if (!validatePhone(countryCode, mobile)) e.mobile = t.register.invalid;
     const fp = `${countryCode}${mobile.replace(/\D/g, "")}`;
@@ -1335,8 +1331,8 @@ function RegistrationView({ t, lang, guests, addGuest }: any) {
     if (Object.keys(e).length > 0) return;
     const ng: Guest = {
       id: generateId(),
-      firstName: firstName.trim(),
-      familyName: familyName.trim(),
+      firstName: fullName.trim().split(/\s+/).slice(0, -1).join(" ") || fullName.trim(),
+      familyName: fullName.trim().split(/\s+/).length > 1 ? fullName.trim().split(/\s+/).slice(-1)[0] : "",
       countryCode,
       mobile: mobile.replace(/\D/g, ""),
       fullPhone: fp,
@@ -1573,42 +1569,24 @@ function RegistrationView({ t, lang, guests, addGuest }: any) {
         <div className="field-wrap">
           <label className={isAr ? "field-label-ar" : "field-label"}>
             {isAr ? "" : "01 · "}
-            {t.register.firstName}
+            {t.register.fullName}
           </label>
           <input
             type="text"
-            value={firstName}
-            onChange={(e) => setFirstName(e.target.value)}
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
             className={`input-box${isAr ? " ar-b" : ""}`}
-            placeholder={isAr ? "محمد" : "e.g. Mohammad"}
+            placeholder={isAr ? "محمد أبو شامية" : "e.g. Mohammad Abu Shamieh"}
             disabled={isPast}
           />
-          {errors.firstName && (
-            <div className="field-error">{errors.firstName}</div>
+          {errors.fullName && (
+            <div className="field-error">{errors.fullName}</div>
           )}
         </div>
 
         <div className="field-wrap">
           <label className={isAr ? "field-label-ar" : "field-label"}>
             {isAr ? "" : "02 · "}
-            {t.register.familyName}
-          </label>
-          <input
-            type="text"
-            value={familyName}
-            onChange={(e) => setFamilyName(e.target.value)}
-            className={`input-box${isAr ? " ar-b" : ""}`}
-            placeholder={isAr ? "أبو شامية" : "e.g. Abu Shamieh"}
-            disabled={isPast}
-          />
-          {errors.familyName && (
-            <div className="field-error">{errors.familyName}</div>
-          )}
-        </div>
-
-        <div className="field-wrap">
-          <label className={isAr ? "field-label-ar" : "field-label"}>
-            {isAr ? "" : "03 · "}
             {t.register.mobile}
           </label>
           <div
@@ -1634,7 +1612,7 @@ function RegistrationView({ t, lang, guests, addGuest }: any) {
 
         <div className="field-wrap">
           <label className={isAr ? "field-label-ar" : "field-label"}>
-            {isAr ? "" : "04 · "}
+            {isAr ? "" : "03 · "}
             {t.register.guestOf}
           </label>
           <select
