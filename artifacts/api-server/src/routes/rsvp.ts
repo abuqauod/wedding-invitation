@@ -143,7 +143,7 @@ async function sendWhatsApp(opts: {
 // POST /api/rsvp — register guest and build invitation image (no auto-send)
 router.post("/rsvp", async (req, res) => {
   try {
-    const { id, firstName, familyName, fullPhone, lang, group, countryCode, mobile, companions } = req.body || {};
+    const { id, firstName, familyName, fullPhone, lang, group, countryCode, mobile } = req.body || {};
     if (!id || !firstName || !familyName || !fullPhone) {
       return res.status(400).json({ ok: false, error: "missing_fields" });
     }
@@ -182,38 +182,6 @@ router.post("/rsvp", async (req, res) => {
     });
     await fs.writeFile(path.join(QR_DIR, `${primaryId}.jpg`), composed);
 
-    // Insert each companion as their own guest row linked to the primary guest
-    if (companions && Array.isArray(companions)) {
-      for (const c of companions as any[]) {
-        if (!c.id) continue;
-        const cPhone = c.phone ? String(c.phone).replace(/\D/g, "") : "";
-        const cCountryCode = c.countryCode ? String(c.countryCode) : String(countryCode || "");
-        const cFullPhone = cPhone ? `${cCountryCode}${cPhone}` : `companion-${c.id}`;
-        try {
-          await db.insert(guestsTable).values({
-            id: String(c.id),
-            primaryGuestId: primaryId,
-            firstName: String(c.firstName || ""),
-            familyName: String(c.familyName || ""),
-            countryCode: cCountryCode,
-            mobile: cPhone,
-            fullPhone: cFullPhone,
-            group: String(group || ""),
-            lang: guestLang,
-            companions: null,
-          });
-          const cComposed = await buildPersonalizedInvitation({
-            id: String(c.id),
-            firstName: String(c.firstName || ""),
-            familyName: String(c.familyName || ""),
-            lang: guestLang,
-          });
-          await fs.writeFile(path.join(QR_DIR, `${c.id}.jpg`), cComposed);
-        } catch (compErr: any) {
-          logger.warn({ compErr, companionId: c.id }, "Failed to insert companion — skipping");
-        }
-      }
-    }
 
     return res.json({ ok: true, id: primaryId });
   } catch (err: any) {
