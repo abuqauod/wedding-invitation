@@ -14,8 +14,9 @@ fs.mkdir(QR_DIR, { recursive: true }).catch(() => {});
 
 const ASSETS_DIR = path.resolve(process.cwd(), "assets");
 
-// Single invitation image (1119×1900)
-const INVITATION_PNG = path.join(ASSETS_DIR, "invitation.png");
+// Invitation images per language (both 1119×1900)
+const INVITATION_PNG_AR = path.join(ASSETS_DIR, "invitation.png");
+const INVITATION_PNG_EN = path.join(ASSETS_DIR, "invitation_en.png");
 
 // White space below "مجد & دانا" names (~y=1020) and above icons bar
 // Bottom extended by 25% of original QR size (222 * 1.25 = 278px)
@@ -33,7 +34,8 @@ async function buildPersonalizedInvitation(opts: {
   familyName: string;
   lang?: string;
 }): Promise<Buffer> {
-  const invitation = sharp(INVITATION_PNG);
+  const invitationFile = opts.lang === "en" ? INVITATION_PNG_EN : INVITATION_PNG_AR;
+  const invitation = sharp(invitationFile);
 
   const qrPng = await QRCode.toBuffer(String(opts.id), {
     width: QR_SIZE,
