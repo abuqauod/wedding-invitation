@@ -17,10 +17,11 @@ const ASSETS_DIR = path.resolve(process.cwd(), "assets");
 // Single invitation image (1119×1900)
 const INVITATION_PNG = path.join(ASSETS_DIR, "invitation.png");
 
-// White space below "مجد & دانا" names (~y=1020) and above icons bar (~y=1270)
-// 14px margin top + bottom → QR centred in that zone
+// White space below "مجد & دانا" names (~y=1020) and above icons bar
+// Bottom extended by 25% of original QR size (222 * 1.25 = 278px)
+// 14px margin top + bottom → QR_TOP=1034, QR_SIZE=278
 const WHITE_TOP = 1020;
-const WHITE_BOTTOM = 1270;
+const WHITE_BOTTOM = 1326;
 const MARGIN = 14;
 const QR_SIZE = WHITE_BOTTOM - WHITE_TOP - MARGIN * 2; // 272px
 const QR_LEFT = Math.round((1119 - QR_SIZE) / 2);
