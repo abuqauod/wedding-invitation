@@ -1429,7 +1429,7 @@ function RegistrationView({ t, lang, guests, addGuest }: any) {
           }}
         >
           <CheckCircle2 size={14} color={C.light} />
-          {t.register.reservedSeats(totalSeats)}
+          {t.register.reservedSeats(1)}
         </div>
         {/* Main guest QR card */}
         <div
