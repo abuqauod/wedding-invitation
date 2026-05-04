@@ -14,17 +14,17 @@ fs.mkdir(QR_DIR, { recursive: true }).catch(() => {});
 
 const ASSETS_DIR = path.resolve(process.cwd(), "assets");
 
-// New invitation images — one per language
-const INVITATION_AR = path.join(ASSETS_DIR, "invitation_ar.jpeg"); // Arabic text version
-const INVITATION_EN = path.join(ASSETS_DIR, "invitation_en.jpeg"); // English text version
-// Fallback
-const INVITATION_FALLBACK = path.join(ASSETS_DIR, "invitation.jpeg");
+// Single invitation image (1119×1900)
+const INVITATION_PNG = path.join(ASSETS_DIR, "invitation.png");
 
-// QR overlay position on the new 1119×1600 invitation images
-// The placeholder QR in the cards is centred at ~y=1230, size ~260px
-const QR_SIZE = 260;
-const QR_LEFT = Math.round((1119 - QR_SIZE) / 2); // 430
-const QR_TOP = 1100;
+// White space below "مجد & دانا" names (~y=1020) and above icons bar (~y=1270)
+// 14px margin top + bottom → QR centred in that zone
+const WHITE_TOP = 1020;
+const WHITE_BOTTOM = 1270;
+const MARGIN = 14;
+const QR_SIZE = WHITE_BOTTOM - WHITE_TOP - MARGIN * 2; // 272px
+const QR_LEFT = Math.round((1119 - QR_SIZE) / 2);
+const QR_TOP = WHITE_TOP + MARGIN;
 
 async function buildPersonalizedInvitation(opts: {
   id: string;
@@ -32,23 +32,18 @@ async function buildPersonalizedInvitation(opts: {
   familyName: string;
   lang?: string;
 }): Promise<Buffer> {
-  const langKey = opts.lang === "ar" ? "ar" : "en";
-  const invPath = langKey === "ar" ? INVITATION_AR : INVITATION_EN;
-
-  // Fallback to original if new images not found
-  const resolvedPath = await fs.access(invPath).then(() => invPath).catch(() => INVITATION_FALLBACK);
-  const invitation = sharp(resolvedPath);
+  const invitation = sharp(INVITATION_PNG);
 
   const qrPng = await QRCode.toBuffer(String(opts.id), {
     width: QR_SIZE,
-    margin: 1,
-    color: { dark: "#c9a000", light: "#ffffff00" }, // gold QR, transparent bg to blend
+    margin: 2,
+    color: { dark: "#c9a000", light: "#ffffff" }, // gold QR on solid white
     type: "png",
   });
 
   const composed = await invitation
     .composite([{ input: qrPng, top: QR_TOP, left: QR_LEFT, blend: "over" }])
-    .jpeg({ quality: 90 })
+    .jpeg({ quality: 92 })
     .toBuffer();
 
   return composed;
