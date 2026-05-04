@@ -601,6 +601,19 @@ export default function WeddingRSVP() {
 
     .gold-s{width:64px;height:1px;background:${C.gold};margin:0 auto;}
 
+    /* ── Basmala mobile ── */
+    .basmala-char{font-size:28px;}
+    @media(max-width:520px){
+      .basmala-char{font-size:15px !important;}
+      .card{padding:24px 16px !important;}
+    }
+
+    /* ── RTL global helpers ── */
+    [dir=rtl] .field-label{text-align:right;}
+    [dir=rtl] .field-hint{text-align:right;}
+    [dir=rtl] .field-error{text-align:right;}
+    [dir=rtl] .cinzel-title{font-family:'Aref Ruqaa','Amiri',serif;letter-spacing:0;font-size:14px;}
+
     @keyframes fi{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
     .fi{animation:fi .7s ease both;}
     .fi1{animation:fi .6s .1s ease both;}
@@ -852,8 +865,8 @@ function LandingView({ t, lang, onRegister }: any) {
             <div className="fi1" style={{ marginBottom: 20 }}>
               {isAr ? (
                 <div
-                  className="ar-d"
-                  style={{ fontSize: 28, color: C.dark, lineHeight: 1.7 }}
+                  className="ar-d basmala-char"
+                  style={{ color: C.dark, lineHeight: 1.7 }}
                 >
                   ﷽
                 </div>
@@ -1231,6 +1244,69 @@ function LandingView({ t, lang, onRegister }: any) {
   );
 }
 
+/* ──────────────────────────── COUNTRY SELECT ──────────────────────────── */
+function CountrySelect({ value, onChange, disabled }: { value: string; onChange: (v: string) => void; disabled?: boolean }) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) { setOpen(false); setQuery(""); }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  const selected = ALLOWED_COUNTRIES.find(c => c.code === value) || ALLOWED_COUNTRIES[0];
+  const filtered = ALLOWED_COUNTRIES.filter(c =>
+    c.name.toLowerCase().includes(query.toLowerCase()) || c.code.includes(query)
+  );
+
+  return (
+    <div ref={ref} style={{ position: "relative", flexShrink: 0, width: 118 }}>
+      <button
+        type="button"
+        onClick={() => { if (!disabled) setOpen(o => !o); }}
+        disabled={disabled}
+        className="input-box"
+        style={{ width: "100%", display: "flex", alignItems: "center", gap: 6, fontSize: 16, padding: "16px 10px", cursor: disabled ? "not-allowed" : "pointer", textAlign: "left" }}
+      >
+        <span style={{ fontSize: 18 }}>{selected.flag}</span>
+        <span style={{ fontFamily: "monospace", fontSize: 13 }}>{selected.code}</span>
+        <ChevronDown size={11} style={{ marginLeft: "auto", flexShrink: 0, color: C.mid }} />
+      </button>
+      {open && (
+        <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, zIndex: 400, background: "#fff", border: `1.5px solid ${C.border}`, borderRadius: 4, width: 250, maxHeight: 280, display: "flex", flexDirection: "column", boxShadow: "0 8px 32px rgba(0,0,0,.15)" }}>
+          <input
+            type="text"
+            autoFocus
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            placeholder="Search country or code…"
+            style={{ border: "none", borderBottom: `1px solid ${C.border}`, padding: "10px 14px", fontSize: 14, outline: "none", fontFamily: "Cormorant Garamond,serif" }}
+          />
+          <div style={{ overflowY: "auto", flex: 1 }}>
+            {filtered.map(c => (
+              <button
+                key={c.code + c.name}
+                type="button"
+                onClick={() => { onChange(c.code); setOpen(false); setQuery(""); }}
+                style={{ width: "100%", textAlign: "left", padding: "8px 14px", background: c.code === value ? "#f5f2e8" : "transparent", border: "none", borderBottom: `1px solid #f5f2e8`, cursor: "pointer", display: "flex", alignItems: "center", gap: 10, fontFamily: "Cormorant Garamond,serif" }}
+              >
+                <span style={{ fontSize: 17 }}>{c.flag}</span>
+                <span style={{ color: C.mid, fontSize: 12, fontFamily: "monospace", flexShrink: 0 }}>{c.code}</span>
+                <span style={{ fontSize: 13, color: C.muted }}>{c.name}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ──────────────────────────── REGISTRATION ──────────────────────────── */
 function RegistrationView({ t, lang, guests, addGuest }: any) {
   const [firstName, setFirstName] = useState("");
@@ -1596,24 +1672,7 @@ function RegistrationView({ t, lang, guests, addGuest }: any) {
             style={{ display: "flex", gap: 10, alignItems: "stretch" }}
             dir="ltr"
           >
-            <select
-              value={countryCode}
-              onChange={(e) => setCountryCode(e.target.value)}
-              className="input-box"
-              style={{
-                width: 150,
-                flexShrink: 0,
-                fontSize: 17,
-                padding: "16px 36px 16px 16px",
-              }}
-              disabled={isPast}
-            >
-              {ALLOWED_COUNTRIES.map((c) => (
-                <option key={c.code} value={c.code}>
-                  {c.flag} {c.code}
-                </option>
-              ))}
-            </select>
+            <CountrySelect value={countryCode} onChange={setCountryCode} disabled={isPast} />
             <input
               type="tel"
               value={mobile}
@@ -1691,17 +1750,11 @@ function RegistrationView({ t, lang, guests, addGuest }: any) {
             <div className="field-wrap">
               <label className={isAr ? "field-label-ar" : "field-label"}>{t.register.companionPhone}</label>
               <div style={{ display: "flex", gap: 10, alignItems: "stretch" }} dir="ltr">
-                <select
+                <CountrySelect
                   value={c.countryCode}
-                  onChange={(e) => setCompanions((p) => p.map((x, i) => i === idx ? {...x, countryCode: e.target.value} : x))}
-                  className="input-box"
-                  style={{ width: 150, flexShrink: 0, fontSize: 17, padding: "16px 36px 16px 16px" }}
+                  onChange={(val) => setCompanions((p) => p.map((x, i) => i === idx ? {...x, countryCode: val} : x))}
                   disabled={isPast}
-                >
-                  {ALLOWED_COUNTRIES.map((cc) => (
-                    <option key={cc.code + cc.name} value={cc.code}>{cc.flag} {cc.code}</option>
-                  ))}
-                </select>
+                />
                 <input
                   type="tel"
                   value={c.phone}
@@ -2000,12 +2053,12 @@ function AdminView({ t, lang, guests, guestsLoading, updateGuest, deleteGuest, e
       >
         <div>
           <div
-            className="cinzel fi1"
+            className={isAr ? "ar-b fi1 cinzel-title" : "cinzel fi1"}
             style={{
-              fontSize: 11,
+              fontSize: isAr ? 14 : 11,
               color: C.mid,
               marginBottom: 10,
-              letterSpacing: ".2em",
+              letterSpacing: isAr ? 0 : ".2em",
             }}
           >
             {t.admin.chapter}
@@ -2177,7 +2230,8 @@ function AdminView({ t, lang, guests, guestsLoading, updateGuest, deleteGuest, e
             {t.admin.noMatch}
           </div>
         ) : (
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" } as any}>
+        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 680 }}>
             <thead>
               <tr style={{ borderBottom: `2px solid ${C.border}` }}>
                 {t.admin.cols.map((h: string, i: number) => {
@@ -2292,6 +2346,7 @@ function AdminView({ t, lang, guests, guestsLoading, updateGuest, deleteGuest, e
               })}
             </tbody>
           </table>
+          </div>
         )}
       </div>
 
