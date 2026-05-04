@@ -1707,7 +1707,6 @@ function RegistrationView({ t, lang, guests, addGuest }: any) {
               {t.register.groupBride}
             </option>
             <option value="Friends">{t.register.groupFriends}</option>
-            <option value="Colleagues">{t.register.groupColleagues}</option>
           </select>
         </div>
 
