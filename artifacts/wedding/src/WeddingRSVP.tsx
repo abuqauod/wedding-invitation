@@ -1812,6 +1812,7 @@ function AdminView({ t, lang, guests, guestsLoading, updateGuest, deleteGuest, e
   const [sortCol, setSortCol] = useState<string>("registeredAt");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("asc");
   const [resendingId, setResendingId] = useState<string | null>(null);
+  const [checkingStatusId, setCheckingStatusId] = useState<string | null>(null);
   const [sendToGuest, setSendToGuest] = useState<Guest | null>(null);
   const [sendToCC, setSendToCC] = useState("+962");
   const [sendToPhone, setSendToPhone] = useState("");
@@ -1874,8 +1875,6 @@ function AdminView({ t, lang, guests, guestsLoading, updateGuest, deleteGuest, e
     if (sortCol === col) setSortDir((d) => (d === "asc" ? "desc" : "asc"));
     else { setSortCol(col); setSortDir("asc"); }
   };
-
-  const [checkingStatusId, setCheckingStatusId] = useState<string | null>(null);
 
   const checkWhatsAppStatus = async (g: Guest) => {
     setCheckingStatusId(g.id);
