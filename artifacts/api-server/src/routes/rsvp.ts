@@ -247,6 +247,42 @@ router.post("/guests/:id/resend", async (req, res) => {
   }
 });
 
+// GET /api/guests/:id/whatsapp-status — fetch real Twilio delivery status and sync DB
+router.get("/guests/:id/whatsapp-status", async (req, res) => {
+  try {
+    const id = req.params.id;
+    const found = await db.select().from(guestsTable).where(eq(guestsTable.id, id)).limit(1);
+    if (found.length === 0) return res.status(404).json({ ok: false, error: "guest_not_found" });
+    const guest = found[0]!;
+
+    if (!guest.whatsappSid) return res.json({ ok: true, status: "not_sent" });
+    if (!TWILIO_SID || !TWILIO_TOKEN) return res.status(503).json({ ok: false, error: "twilio_not_configured" });
+
+    const auth = Buffer.from(`${TWILIO_SID}:${TWILIO_TOKEN}`).toString("base64");
+    const twResp = await fetch(
+      `https://api.twilio.com/2010-04-01/Accounts/${TWILIO_SID}/Messages/${guest.whatsappSid}.json`,
+      { headers: { Authorization: `Basic ${auth}` } },
+    );
+    const twJson: any = await twResp.json();
+    if (!twResp.ok) return res.status(502).json({ ok: false, error: twJson?.message || "twilio_error" });
+
+    const twilioStatus: string = twJson.status || "unknown";
+    const isDelivered = ["delivered", "read", "sent"].includes(twilioStatus);
+    const isFailed = ["failed", "undelivered"].includes(twilioStatus);
+
+    await db.update(guestsTable).set({
+      whatsappSent: isDelivered,
+      whatsappError: isFailed ? twilioStatus : (isDelivered ? null : guest.whatsappError),
+    }).where(eq(guestsTable.id, id));
+
+    logger.info({ id, twilioStatus }, "WhatsApp status checked");
+    return res.json({ ok: true, status: twilioStatus, sid: guest.whatsappSid });
+  } catch (err: any) {
+    logger.error({ err }, "whatsapp-status check failed");
+    return res.status(500).json({ ok: false, error: err?.message || "server_error" });
+  }
+});
+
 // POST /api/vip — admin quick-register a guest and send their pass immediately
 router.post("/vip", async (req, res) => {
   try {

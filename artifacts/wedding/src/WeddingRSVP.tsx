@@ -12,6 +12,8 @@ import {
   Send,
   ChevronDown,
   ChevronUp,
+  RefreshCw,
+  Clock,
 } from "lucide-react";
 
 const floralUrl = `${import.meta.env.BASE_URL}floral.jpeg`;
@@ -469,6 +471,8 @@ type Guest = {
   registeredAt: string;
   checkedInAt: string | null;
   whatsappSent: boolean;
+  whatsappSid: string | null;
+  whatsappError: string | null;
 };
 
 export default function WeddingRSVP() {
@@ -502,6 +506,8 @@ export default function WeddingRSVP() {
             registeredAt: g.registeredAt,
             checkedInAt: g.checkedInAt ?? null,
             whatsappSent: g.whatsappSent ?? false,
+            whatsappSid: g.whatsappSid ?? null,
+            whatsappError: g.whatsappError ?? null,
           })),
         );
       }
@@ -1869,12 +1875,32 @@ function AdminView({ t, lang, guests, guestsLoading, updateGuest, deleteGuest, e
     else { setSortCol(col); setSortDir("asc"); }
   };
 
+  const [checkingStatusId, setCheckingStatusId] = useState<string | null>(null);
+
+  const checkWhatsAppStatus = async (g: Guest) => {
+    setCheckingStatusId(g.id);
+    try {
+      const r = await fetch(`/api/guests/${g.id}/whatsapp-status`);
+      const data = await r.json().catch(() => ({}));
+      if (data.ok) {
+        const s: string = data.status || "unknown";
+        const isDelivered = ["delivered", "read", "sent"].includes(s);
+        const isFailed = ["failed", "undelivered"].includes(s);
+        updateGuest(g.id, {
+          whatsappSent: isDelivered,
+          whatsappError: isFailed ? s : (isDelivered ? null : g.whatsappError),
+        });
+      }
+    } catch { /* ignore */ } finally {
+      setCheckingStatusId(null);
+    }
+  };
+
   const resendPass = async (g: Guest) => {
     setResendingId(g.id);
     try {
       const r = await fetch(`/api/guests/${g.id}/resend`, { method: "POST" });
-      const data = await r.json().catch(() => ({}));
-      if (data.ok) updateGuest(g.id, { whatsappSent: true });
+      await r.json().catch(() => ({}));
       await refreshGuests();
     } catch { /* ignore */ } finally {
       setResendingId(null);
@@ -2231,15 +2257,24 @@ function AdminView({ t, lang, guests, guestsLoading, updateGuest, deleteGuest, e
                     )}
                   </td>
                   <td style={{ padding: "16px 14px" }}>
-                    {g.whatsappSent ? (
-                      <span style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "#eaf5e9", padding: "4px 10px", borderRadius: 12, fontSize: 11, color: "#2d6a2d", fontFamily: "Cinzel,serif", letterSpacing: ".08em" }}>
-                        <CheckCircle2 size={11} />{isAr ? "أُرسل" : "Sent"}
-                      </span>
-                    ) : (
-                      <span style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "#fff3f3", padding: "4px 10px", borderRadius: 12, fontSize: 11, color: "#b04040", fontFamily: "Cinzel,serif", letterSpacing: ".08em" }}>
-                        <XCircle size={11} />{isAr ? "لم يُرسل" : "Not Sent"}
-                      </span>
-                    )}
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                      {(() => {
+                        const isFailed = ["failed", "undelivered"].includes(g.whatsappError || "");
+                        const isQueued = g.whatsappSid && !g.whatsappSent && !isFailed;
+                        if (g.whatsappSent)
+                          return <span style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "#eaf5e9", padding: "4px 10px", borderRadius: 12, fontSize: 11, color: "#2d6a2d", fontFamily: "Cinzel,serif", letterSpacing: ".08em" }}><CheckCircle2 size={11} />{isAr ? "أُرسل" : "Sent"}</span>;
+                        if (isFailed)
+                          return <span style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "#fff3f3", padding: "4px 10px", borderRadius: 12, fontSize: 11, color: "#b04040", fontFamily: "Cinzel,serif", letterSpacing: ".08em" }}><XCircle size={11} />{isAr ? "فشل" : "Failed"}</span>;
+                        if (isQueued)
+                          return <span style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "#fffbea", padding: "4px 10px", borderRadius: 12, fontSize: 11, color: "#8a6800", fontFamily: "Cinzel,serif", letterSpacing: ".08em" }}><Clock size={11} />{isAr ? "قيد الإرسال" : "Queued"}</span>;
+                        return <span style={{ display: "inline-flex", alignItems: "center", gap: 5, background: "#f5f5f5", padding: "4px 10px", borderRadius: 12, fontSize: 11, color: "#999", fontFamily: "Cinzel,serif", letterSpacing: ".08em" }}><XCircle size={11} />{isAr ? "لم يُرسل" : "Not Sent"}</span>;
+                      })()}
+                      {g.whatsappSid && (
+                        <button onClick={() => checkWhatsAppStatus(g)} disabled={checkingStatusId === g.id} title={isAr ? "تحقق من الحالة" : "Check real status"} style={{ background: "none", border: "none", cursor: "pointer", color: C.muted, padding: 0, display: "inline-flex", opacity: checkingStatusId === g.id ? 0.4 : 0.7 }}>
+                          <RefreshCw size={11} style={{ animation: checkingStatusId === g.id ? "spin 1s linear infinite" : "none" }} />
+                        </button>
+                      )}
+                    </div>
                   </td>
                   <td style={{ padding: "16px 14px", textAlign: isAr ? "left" : "right" }}>
                     <div style={{ display: "inline-flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
