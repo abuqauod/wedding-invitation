@@ -6,7 +6,7 @@ import sharp from "sharp";
 import { db, guestsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { logger } from "../lib/logger";
-import { uploadAndGetAccessTokenUrl } from "../lib/gcsUpload";
+import { uploadAndGetPublicUrl } from "../lib/gcsUpload";
 
 const router: IRouter = Router();
 
@@ -81,7 +81,7 @@ function publicBaseUrl(req: any): string {
 async function getPublicQrUrl(id: string, buf?: Buffer): Promise<string> {
   try {
     const imageBuffer = buf ?? await fs.readFile(path.join(QR_DIR, `${id}.jpg`));
-    return await uploadAndGetAccessTokenUrl(`qr/${id}.jpg`, imageBuffer, "image/jpeg");
+    return await uploadAndGetPublicUrl(`qr/${id}.jpg`, imageBuffer, "image/jpeg");
   } catch (err) {
     logger.warn({ err, id }, "GCS upload failed — falling back to local URL");
     return "";
@@ -469,7 +469,7 @@ router.post("/invite", async (req, res) => {
   let mediaUrl: string;
   try {
     const invBuf = await fs.readFile(invFile);
-    mediaUrl = await uploadAndGetAccessTokenUrl(`invitation/${invLang}.png`, invBuf, "image/png");
+    mediaUrl = await uploadAndGetPublicUrl(`invitation/${invLang}.png`, invBuf, "image/png");
   } catch {
     mediaUrl = `https://${process.env["REPLIT_DEV_DOMAIN"] || "your-site.replit.app"}/api/assets/invitation/${invLang}`;
   }

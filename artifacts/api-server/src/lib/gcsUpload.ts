@@ -1,4 +1,5 @@
 import { Storage } from "@google-cloud/storage";
+import { logger } from "./logger";
 
 const REPLIT_SIDECAR_ENDPOINT = "http://127.0.0.1:1106";
 
@@ -19,25 +20,16 @@ const gcs = new Storage({
 
 const BUCKET_ID = process.env["DEFAULT_OBJECT_STORAGE_BUCKET_ID"] || "";
 
-async function getRealAccessToken(): Promise<string> {
-  const credResp = await fetch(`${REPLIT_SIDECAR_ENDPOINT}/credential`);
-  const { access_token: subjectToken } = (await credResp.json()) as any;
-
-  const stsResp = await fetch(`${REPLIT_SIDECAR_ENDPOINT}/token`, {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: new URLSearchParams({
-      grant_type: "urn:ietf:params:oauth:grant-type:token-exchange",
-      subject_token_type: "urn:ietf:params:oauth:token-type:access_token",
-      subject_token: subjectToken,
-    }),
-  });
-  const { access_token } = (await stsResp.json()) as any;
-  if (!access_token) throw new Error("STS token exchange returned no access_token");
-  return access_token;
-}
-
-export async function uploadAndGetAccessTokenUrl(
+/**
+ * Uploads a buffer to GCS, makes the object publicly readable,
+ * and returns a stable permanent URL that never expires.
+ *
+ * Previously this function returned a URL with a short-lived access_token
+ * (~1 hour), which caused Twilio to fail fetching media after the token
+ * expired. By calling makePublic() we get a permanent
+ * https://storage.googleapis.com/<bucket>/<object> URL instead.
+ */
+export async function uploadAndGetPublicUrl(
   objectName: string,
   buf: Buffer,
   contentType: string,
@@ -47,7 +39,25 @@ export async function uploadAndGetAccessTokenUrl(
   const file = gcs.bucket(BUCKET_ID).file(objectName);
   await file.save(buf, { contentType, resumable: false });
 
-  const accessToken = await getRealAccessToken();
+  try {
+    await file.makePublic();
+  } catch (err) {
+    logger.warn({ err, objectName }, "makePublic() failed — object may not be publicly accessible");
+    throw err;
+  }
+
   const encodedObject = encodeURIComponent(objectName);
-  return `https://storage.googleapis.com/storage/v1/b/${BUCKET_ID}/o/${encodedObject}?alt=media&access_token=${accessToken}`;
+  return `https://storage.googleapis.com/${BUCKET_ID}/${encodedObject}`;
+}
+
+/**
+ * @deprecated Use uploadAndGetPublicUrl instead.
+ * Kept for backward compatibility; now delegates to the public-URL variant.
+ */
+export async function uploadAndGetAccessTokenUrl(
+  objectName: string,
+  buf: Buffer,
+  contentType: string,
+): Promise<string> {
+  return uploadAndGetPublicUrl(objectName, buf, contentType);
 }
