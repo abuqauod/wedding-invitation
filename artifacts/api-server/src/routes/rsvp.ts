@@ -6,6 +6,7 @@ import sharp from "sharp";
 import { db, guestsTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { logger } from "../lib/logger";
+import { uploadAndGetAccessTokenUrl } from "../lib/gcsUpload";
 
 const router: IRouter = Router();
 
@@ -75,6 +76,16 @@ function publicBaseUrl(req: any): string {
   const proto = (req.headers["x-forwarded-proto"] as string) || req.protocol || "https";
   const host = (req.headers["x-forwarded-host"] as string) || req.get("host");
   return `${proto}://${host}`;
+}
+
+async function getPublicQrUrl(id: string, buf?: Buffer): Promise<string> {
+  try {
+    const imageBuffer = buf ?? await fs.readFile(path.join(QR_DIR, `${id}.jpg`));
+    return await uploadAndGetAccessTokenUrl(`qr/${id}.jpg`, imageBuffer, "image/jpeg");
+  } catch (err) {
+    logger.warn({ err, id }, "GCS upload failed — falling back to local URL");
+    return "";
+  }
 }
 
 function buildMessage(firstName: string, lang: string): string {
@@ -216,14 +227,19 @@ router.post("/guests/:id/resend", async (req, res) => {
     if (found.length === 0) return res.status(404).json({ ok: false, error: "guest_not_found" });
     const guest = found[0]!;
 
-    // Ensure image exists (rebuild if needed)
+    // Ensure image exists (rebuild if needed), then upload to GCS for a stable public URL
     const outPath = path.join(QR_DIR, `${id}.jpg`);
-    try { await fs.access(outPath); } catch {
-      const composed = await buildPersonalizedInvitation({ id, firstName: guest.firstName, familyName: guest.familyName, lang: guest.lang });
-      await fs.writeFile(outPath, composed);
+    let imageBuffer: Buffer;
+    try {
+      await fs.access(outPath);
+      imageBuffer = await fs.readFile(outPath);
+    } catch {
+      imageBuffer = await buildPersonalizedInvitation({ id, firstName: guest.firstName, familyName: guest.familyName, lang: guest.lang });
+      await fs.writeFile(outPath, imageBuffer);
     }
 
-    const mediaUrl = `${publicBaseUrl(req)}/api/qr/${id}.jpg`;
+    const gcsUrl = await getPublicQrUrl(id, imageBuffer);
+    const mediaUrl = gcsUrl || `${publicBaseUrl(req)}/api/qr/${id}.jpg`;
     // Optional alternate delivery number (for sending to a shared phone on behalf of another guest)
     const rawToPhone = req.body?.toPhone ? String(req.body.toPhone).trim() : null;
     const deliveryPhone = rawToPhone || guest.fullPhone;
@@ -315,7 +331,8 @@ router.post("/vip", async (req, res) => {
     const composed = await buildPersonalizedInvitation({ id: guestId, firstName: String(firstName), familyName: String(familyName), lang: guestLang });
     await fs.writeFile(path.join(QR_DIR, `${guestId}.jpg`), composed);
 
-    const mediaUrl = `${publicBaseUrl(req)}/api/qr/${guestId}.jpg`;
+    const gcsUrl = await getPublicQrUrl(guestId, composed);
+    const mediaUrl = gcsUrl || `${publicBaseUrl(req)}/api/qr/${guestId}.jpg`;
     const result = await sendWhatsApp({ to: String(fullPhone), firstName: String(firstName), lang: guestLang, mediaUrl });
 
     if (result.ok) {
@@ -447,8 +464,16 @@ router.post("/invite", async (req, res) => {
   }
 
   const registrationUrl = `https://${process.env["REPLIT_DEV_DOMAIN"] || "your-site.replit.app"}/`;
-  const mediaUrl = `https://${process.env["REPLIT_DEV_DOMAIN"] || "your-site.replit.app"}/api/assets/invitation/${lang === "ar" ? "ar" : "en"}`;
-  const message = buildInviteMessage(lang === "ar" ? "ar" : "en", registrationUrl);
+  const invLang = lang === "ar" ? "ar" : "en";
+  const invFile = invLang === "ar" ? INVITATION_PNG_AR : INVITATION_PNG_EN;
+  let mediaUrl: string;
+  try {
+    const invBuf = await fs.readFile(invFile);
+    mediaUrl = await uploadAndGetAccessTokenUrl(`invitation/${invLang}.png`, invBuf, "image/png");
+  } catch {
+    mediaUrl = `https://${process.env["REPLIT_DEV_DOMAIN"] || "your-site.replit.app"}/api/assets/invitation/${invLang}`;
+  }
+  const message = buildInviteMessage(invLang, registrationUrl);
 
   const fromNumber = ensureWa(String(TWILIO_FROM).trim());
   const auth = Buffer.from(`${TWILIO_SID}:${TWILIO_TOKEN}`).toString("base64");
