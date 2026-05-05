@@ -18,6 +18,11 @@ const ASSETS_DIR = path.resolve(process.cwd(), "assets");
 const INVITATION_PNG_AR = path.join(ASSETS_DIR, "invitation.png");
 const INVITATION_PNG_EN = path.join(ASSETS_DIR, "invitation_en.png");
 
+// Aliases used by the static asset serving routes
+const INVITATION_AR = INVITATION_PNG_AR;
+const INVITATION_EN = INVITATION_PNG_EN;
+const INVITATION_FALLBACK = INVITATION_PNG_AR;
+
 // White space below "مجد & دانا" names (~y=1020) and above icons bar
 // Bottom extended by 25% of original QR size (222 * 1.25 = 278px)
 // 14px margin top + bottom → QR_TOP=1034, QR_SIZE=278
