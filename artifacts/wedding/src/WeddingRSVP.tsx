@@ -2100,42 +2100,6 @@ function AdminView({ t, lang, guests, guestsLoading, updateGuest, deleteGuest, e
         ))}
       </div>
 
-      {/* Twilio sandbox notice */}
-      <div
-        style={{
-          background: "#fffbea",
-          border: `1.5px solid ${C.gold}`,
-          borderRadius: 4,
-          padding: "16px 20px",
-          marginBottom: 28,
-          display: "flex",
-          gap: 14,
-          alignItems: "flex-start",
-        }}
-      >
-        <AlertCircle size={18} color={C.gold} style={{ flexShrink: 0, marginTop: 2 }} />
-        <div>
-          <div style={{ fontFamily: "Cinzel,serif", fontSize: 10, letterSpacing: ".18em", color: C.gold, marginBottom: 4 }}>
-            WHATSAPP — ACTION REQUIRED BEFORE DEPLOYMENT
-          </div>
-          <div style={{ fontFamily: "Cormorant Garamond,serif", fontSize: 15, color: C.muted, lineHeight: 1.6 }}>
-            Messages are currently sent via the <strong>Twilio WhatsApp Sandbox</strong>, which requires each recipient to
-            first send "<em>join &lt;keyword&gt;</em>" to your sandbox number before they can receive messages.
-            To send freely to all guests, you must upgrade to the{" "}
-            <strong>WhatsApp Business API</strong>:
-          </div>
-          <ol style={{ fontFamily: "Cormorant Garamond,serif", fontSize: 14, color: C.muted, lineHeight: 1.8, margin: "8px 0 0 18px", padding: 0 }}>
-            <li>Go to <strong>console.twilio.com</strong> → Messaging → Senders → WhatsApp Senders</li>
-            <li>Click <strong>"Request Access"</strong> and complete the WhatsApp Business Profile</li>
-            <li>Submit for Meta review (typically 1–3 business days)</li>
-            <li>Once approved, update <strong>TWILIO_WHATSAPP_FROM</strong> to your approved number (e.g. <code>whatsapp:+17789497415</code>)</li>
-            <li>Redeploy the API server — no other code changes needed</li>
-          </ol>
-          <div style={{ fontFamily: "Cormorant Garamond,serif", fontStyle: "italic", fontSize: 13, color: C.light, marginTop: 6 }}>
-            Until then, any guest whose phone has not joined the sandbox will not receive their entry pass.
-          </div>
-        </div>
-      </div>
 
       <div
         className="fi3"
